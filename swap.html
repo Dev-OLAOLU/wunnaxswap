@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swap | Wunnaxswap</title>
+  <meta name="description" content="Wunnaxswap — buy and sell crypto at competitive rates with arbitrage tools, swap, markets, and earn products." />
+  <meta name="theme-color" content="#070a12" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  
+</head>
+<body>
+
+<main class="container" style="padding-bottom:2rem">
+  <div class="page-hero">
+    <h1>Instant Swap</h1>
+    <p>Convert assets at competitive demo rates with a clear 0.10% swap fee.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card swap-box">
+      <div class="swap-side">
+        <div class="row"><span class="muted">You send</span>
+          <select id="swapSendAsset" class="select" style="width:auto;min-width:110px"></select>
+        </div>
+        <input id="swapAmount" type="number" min="0" step="any" placeholder="0.00" />
+      </div>
+      <div style="text-align:center;margin:.4rem 0">
+        <button class="btn btn-ghost btn-sm" type="button" id="swapFlip">↕ Flip</button>
+      </div>
+      <div class="swap-side">
+        <div class="row"><span class="muted">You receive</span>
+          <select id="swapRecvAsset" class="select" style="width:auto;min-width:110px"></select>
+        </div>
+        <input id="swapOut" type="text" readonly placeholder="0.00" />
+      </div>
+      <div class="rate-line"><span id="swapRate">—</span><span id="swapFee">Fee (0.10%): —</span></div>
+      <button class="btn btn-primary" type="button" id="swapSubmit" style="width:100%">Exchange</button>
+      <p class="muted" style="font-size:.8rem;margin:.8rem 0 0">Requires sign-in. Uses your demo wallet balances.</p>
+    </div>
+    <div class="card" style="padding:1.2rem">
+      <h3 style="margin-top:0">Last orders</h3>
+      <div class="table-wrap">
+        <table class="data" style="min-width:520px">
+          <thead><tr><th>Side</th><th>Pair</th><th>Open</th><th>Closed</th><th>Price</th><th>Amount</th><th>Total</th></tr></thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

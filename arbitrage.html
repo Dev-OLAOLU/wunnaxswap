@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arbitrage Scanner | Wunnaxswap</title>
+  <meta name="description" content="Wunnaxswap — buy and sell crypto at competitive rates with arbitrage tools, swap, markets, and earn products." />
+  <meta name="theme-color" content="#070a12" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  
+</head>
+<body>
+
+<main class="container" style="padding-bottom:2rem">
+  <div class="page-hero">
+    <h1>Arbitrage Scanner</h1>
+    <p>Compare multi-venue quotes, surface spreads, and estimate net profit after rough fees. Built for cheaper buy / higher sell decisions.</p>
+  </div>
+  <div class="kpi-row">
+    <div class="card kpi"><strong id="arbBest">—</strong><span>Top spread now</span></div>
+    <div class="card kpi"><strong>6</strong><span>Venues compared</span></div>
+    <div class="card kpi"><strong>~0.08%</strong><span>Assumed round-trip fees</span></div>
+    <div class="card kpi"><button class="btn btn-cyan btn-sm" type="button" id="arbRefresh">Refresh board</button><span style="display:block;margin-top:.4rem">Live demo refresh</span></div>
+  </div>
+  <div class="grid-3" id="arbGrid"></div>
+  <div class="disclaimer">Educational simulation only. Real arbitrage requires capital on multiple venues, transfer time, withdrawal fees, and risk controls.</div>
+</main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

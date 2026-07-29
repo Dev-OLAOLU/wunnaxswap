@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wallet | Wunnaxswap</title>
+  <meta name="description" content="Wunnaxswap — buy and sell crypto at competitive rates with arbitrage tools, swap, markets, and earn products." />
+  <meta name="theme-color" content="#070a12" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+  
+</head>
+<body>
+
+<main class="container" style="padding-bottom:2rem">
+  <div class="page-hero">
+    <h1>Wallet</h1>
+    <p>Demo balances stored in your browser. Total estimated in USD ($).</p>
+  </div>
+  <div class="kpi-row">
+    <div class="card kpi"><strong id="walletTotal">$0.00</strong><span>Estimated total</span></div>
+    <div class="card kpi"><a class="btn btn-primary btn-sm" href="deposit.html" id="walletDepositBtn">Deposit</a><span style="display:block;margin-top:.45rem">Get address &amp; add funds</span></div>
+    <div class="card kpi"><a class="btn btn-cyan btn-sm" href="../swap.html">Swap</a><span style="display:block;margin-top:.45rem">Convert assets</span></div>
+    <div class="card kpi"><a class="btn btn-ghost btn-sm" href="../trade.html">Trade</a><span style="display:block;margin-top:.45rem">Spot terminal</span></div>
+  </div>
+  <div class="table-wrap">
+    <table class="data" style="min-width:520px">
+      <thead><tr><th>Asset</th><th>Balance</th><th>Price</th><th>Value</th></tr></thead>
+      <tbody id="walletBody"></tbody>
+    </table>
+  </div>
+</main>
+
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/app.js"></script>
+</body>
+</html>

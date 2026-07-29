@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Market Cap | Wunnaxswap</title>
+  <meta name="theme-color" content="#f4f7ff" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+<main class="container-wide" style="padding-bottom:2rem">
+  <div class="tool-grid">
+    <aside class="card side-nav">
+      <a class="active" href="market-cap.html">Market Cap</a>
+      <a href="screener.html">Market Screener</a>
+      <a href="cross-rates.html">Cross Rates</a>
+      <a href="heat-map.html">Heat Map</a>
+      <a href="technical.html">Technical Analysis</a>
+      <a href="../arbitrage.html">Arbitrage Scanner</a>
+    </aside>
+    <section>
+      <div class="page-hero" style="padding-top:.4rem">
+        <h1>Market Cap</h1>
+        <p class="muted">Global ranking with logos, market cap, volume, dominance, and 24h performance.</p>
+      </div>
+      <div class="kpi-row">
+        <div class="card kpi"><strong id="capTotal">—</strong><span>Total market cap</span></div>
+        <div class="card kpi"><strong id="capVol">—</strong><span>24h volume</span></div>
+        <div class="card kpi"><strong id="capBtcDom">—</strong><span>BTC dominance</span></div>
+        <div class="card kpi"><strong id="capCount">—</strong><span>Listed assets</span></div>
+      </div>
+      <div style="max-width:320px;margin-bottom:1rem">
+        <input class="input" id="capSearch" placeholder="Search coin…" />
+      </div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Asset</th>
+              <th>Price</th>
+              <th>24h</th>
+              <th>Market cap</th>
+              <th>Volume (24h)</th>
+              <th>Dominance</th>
+              <th>Chart</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="capBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/charts.js"></script>
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

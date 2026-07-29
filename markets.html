@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Markets | Wunnaxswap</title>
+  <meta name="description" content="Wunnaxswap markets — Spot & Futures pairs with live prices, logos, and charts." />
+  <meta name="theme-color" content="#f4f7ff" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body>
+<main class="container-wide" style="padding-bottom:2rem">
+  <div class="page-hero">
+    <h1>Markets</h1>
+    <p>Spot and USDT-M Futures pairs with live demo prices, official coin logos, 24h stats, and mini charts.</p>
+  </div>
+
+  <div class="markets-toolbar">
+    <div class="mode-switch" id="marketMode">
+      <button type="button" class="active" data-mode="spot">Spot</button>
+      <button type="button" class="fut" data-mode="futures">Futures</button>
+      <button type="button" data-mode="favorites">Favorites</button>
+    </div>
+    <div class="tabs" id="marketCats">
+      <button class="tab active" data-cat="all" type="button">All</button>
+      <button class="tab" data-cat="crypto" type="button">Crypto</button>
+      <button class="tab" data-cat="stable" type="button">Stablecoins</button>
+      <button class="tab" data-cat="gainers" type="button">Hot gainers</button>
+      <button class="tab" data-cat="losers" type="button">Losers</button>
+    </div>
+  </div>
+
+  <div class="markets-toolbar">
+    <div style="max-width:340px;flex:1">
+      <input class="input" id="marketSearch" placeholder="Search pair, e.g. BTC or Solana…" />
+    </div>
+    <label class="vis-toggle">
+      <input type="checkbox" id="showViz" checked /> Visualization (mini charts)
+    </label>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Trading pairs</th>
+          <th>Last price</th>
+          <th>24H change %</th>
+          <th>24H high</th>
+          <th>24H low</th>
+          <th>24H volume</th>
+          <th>Chart</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="marketsBody"></tbody>
+    </table>
+  </div>
+</main>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Staking | Wunnaxswap</title>
+  <meta name="theme-color" content="#f4f7ff" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+<main class="container" style="padding-bottom:2rem">
+  <div class="page-hero">
+    <h1>Staking</h1>
+    <p>Stake assets from your demo wallet. Flexible and fixed terms with live capacity meters.</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="card kpi"><strong id="stakeTotal">$0.00</strong><span>Total staked (est.)</span></div>
+    <div class="card kpi"><strong id="stakeReward">$0.00</strong><span>Est. daily rewards</span></div>
+    <div class="card kpi"><strong id="stakePlans">0</strong><span>Active plans</span></div>
+    <div class="card kpi"><a class="btn btn-primary btn-sm" href="../earn.html">Earn catalogue</a><span style="display:block;margin-top:.4rem">Browse all products</span></div>
+  </div>
+
+  <div class="section-head"><div><h2>Available plans</h2><p>Choose a plan — logos mark each asset.</p></div></div>
+  <div class="grid-3" id="stakingGrid"></div>
+
+  <div class="section-head" style="margin-top:1.5rem"><div><h2>My positions</h2></div></div>
+  <div class="table-wrap">
+    <table class="data" style="min-width:640px">
+      <thead><tr><th>Asset</th><th>Amount</th><th>APR</th><th>Term</th><th>Started</th><th>Est. daily</th><th></th></tr></thead>
+      <tbody id="stakePositions"></tbody>
+    </table>
+  </div>
+</main>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

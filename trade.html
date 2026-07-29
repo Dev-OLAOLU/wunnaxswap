@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trade | Wunnaxswap</title>
+  <meta name="description" content="Wunnaxswap spot & futures trading terminal with realistic charts." />
+  <meta name="theme-color" content="#f4f7ff" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body>
+<main class="container-wide" style="padding-bottom:2rem">
+  <div class="page-hero" style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:end">
+    <div>
+      <div class="mode-switch" id="tradeMode" style="margin-bottom:.7rem">
+        <button type="button" class="active" data-mode="spot">Spot</button>
+        <button type="button" class="fut" data-mode="futures">Futures <span class="tag-perp">PERP</span></button>
+      </div>
+      <h1 style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+        <img id="tradeLogo" class="coin-logo lg" alt="" width="36" height="36" />
+        <span id="tradePair">BTC/USDT</span>
+        <span id="tradePerpTag" class="tag-perp" hidden>PERP</span>
+      </h1>
+      <p id="tradeSubtitle">Spot market · maker/taker fees apply</p>
+    </div>
+    <div>
+      <div class="mono" style="font-size:1.7rem;font-weight:800" id="tradePrice">—</div>
+      <div id="tradeChange" class="mono" style="text-align:right;font-weight:700">—</div>
+    </div>
+  </div>
+
+  <div class="trade-shell">
+    <!-- Pair list -->
+    <aside class="card pair-list" id="pairList"></aside>
+
+    <!-- Chart + book -->
+    <section>
+      <div class="card" style="padding:1rem;margin-bottom:.85rem">
+        <div class="trade-stats" id="tradeStats"></div>
+        <div class="chart-toolbar">
+          <div class="tf-group" id="tfGroup">
+            <button type="button" class="tf-btn" data-tf="1m">1m</button>
+            <button type="button" class="tf-btn" data-tf="5m">5m</button>
+            <button type="button" class="tf-btn active" data-tf="15m">15m</button>
+            <button type="button" class="tf-btn" data-tf="1h">1H</button>
+            <button type="button" class="tf-btn" data-tf="4h">4H</button>
+            <button type="button" class="tf-btn" data-tf="1D">1D</button>
+          </div>
+          <span class="muted" style="font-size:.78rem">Hover chart for OHLC · SMA20 · EMA9 · Volume</span>
+        </div>
+        <div class="chart-box" style="height:380px"><canvas id="priceChart"></canvas></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card" style="padding:1rem">
+          <h3 style="margin:.1rem 0 .55rem;font-size:.95rem">Order book · Bids</h3>
+          <div class="ob-list" id="bookBids"></div>
+        </div>
+        <div class="card" style="padding:1rem">
+          <h3 style="margin:.1rem 0 .55rem;font-size:.95rem">Order book · Asks</h3>
+          <div class="ob-list" id="bookAsks"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Order ticket -->
+    <aside class="card trade-box" style="padding:1rem;position:sticky;top:80px">
+      <div id="futuresExtras">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <strong style="font-size:.9rem">USDT-M Perpetual</strong>
+          <span class="funding-pill" id="fundingPill">Funding 0.01%</span>
+        </div>
+        <div class="side-toggle">
+          <button type="button" class="long active" id="sideLong">Long</button>
+          <button type="button" class="short" id="sideShort">Short</button>
+        </div>
+        <label class="muted" style="font-size:.78rem;font-weight:700">Leverage</label>
+        <div class="lev-row" id="levRow">
+          <button type="button" class="lev-btn" data-lev="2">2x</button>
+          <button type="button" class="lev-btn" data-lev="5">5x</button>
+          <button type="button" class="lev-btn active" data-lev="10">10x</button>
+          <button type="button" class="lev-btn" data-lev="25">25x</button>
+          <button type="button" class="lev-btn" data-lev="50">50x</button>
+          <button type="button" class="lev-btn" data-lev="100">100x</button>
+        </div>
+      </div>
+
+      <div class="field"><label>Order type</label>
+        <select id="orderType"><option value="market">Market</option><option value="limit">Limit</option></select>
+      </div>
+      <div class="field"><label>Price (USD)</label><input id="orderPrice" type="number" step="any" placeholder="Market uses last price" /></div>
+      <div class="field"><label id="amountLabel">Amount</label><input id="orderAmount" type="number" step="any" placeholder="0.00" /></div>
+      <div class="muted" style="font-size:.8rem;margin-bottom:.7rem" id="orderHint">Available from demo wallet</div>
+
+      <div id="spotActions" style="display:flex;gap:.5rem">
+        <button class="btn btn-primary" style="flex:1;background:linear-gradient(135deg,#34d399,#059669)" type="button" id="btnBuy">Buy</button>
+        <button class="btn btn-primary" style="flex:1;background:linear-gradient(135deg,#f87171,#dc2626)" type="button" id="btnSell">Sell</button>
+      </div>
+      <div id="futActions" hidden>
+        <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#34d399,#059669)" type="button" id="btnOpen">Open Long</button>
+      </div>
+      <p class="muted" style="font-size:.75rem;margin:.8rem 0 0">Demo trading only — no real funds. Futures use simulated margin.</p>
+    </aside>
+  </div>
+
+  <div class="card" style="padding:1rem;margin-top:1rem">
+    <h3 style="margin-top:0">Open / recent orders & positions</h3>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Side</th><th>Pair</th><th>Mode</th><th>Open</th><th>Closed</th><th>Price / Entry</th><th>Amount / Size</th><th>Total / PnL</th></tr></thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

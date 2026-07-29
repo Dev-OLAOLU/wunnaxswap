@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fees | Wunnaxswap</title>
+  <meta name="description" content="Wunnaxswap — buy and sell crypto at competitive rates with arbitrage tools, swap, markets, and earn products." />
+  <meta name="theme-color" content="#070a12" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  
+</head>
+<body>
+
+<main class="container" style="padding-bottom:2rem">
+  <div class="page-hero">
+    <h1>Trade more. Pay less.</h1>
+    <p>Transparent maker/taker tiers and per-asset deposit conditions.</p>
+  </div>
+  <div class="kpi-row">
+    <div class="card kpi"><strong>0.03%</strong><span>VIP maker from</span></div>
+    <div class="card kpi"><strong>0.06%</strong><span>VIP taker from</span></div>
+    <div class="card kpi"><strong>0%</strong><span>Stablecoin deposit fee*</span></div>
+    <div class="card kpi"><strong>Clear</strong><span>Min deposit per asset</span></div>
+  </div>
+  <div class="section-head"><div><h2>Trading fee tiers</h2></div></div>
+  <div class="table-wrap" style="margin-bottom:1.5rem">
+    <table class="data" style="min-width:560px">
+      <thead><tr><th>Tier</th><th>30D volume</th><th>Maker</th><th>Taker</th></tr></thead>
+      <tbody id="feeTiersBody"></tbody>
+    </table>
+  </div>
+  <div class="section-head"><div><h2>Deposit fees</h2><p>Commission and minimum amount for supported assets.</p></div></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Asset</th><th>Name</th><th>Commission</th><th>Min. deposit</th></tr></thead>
+      <tbody id="depositFeesBody"></tbody>
+    </table>
+  </div>
+</main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

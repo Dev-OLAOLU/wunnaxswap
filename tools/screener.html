@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Market Screener | Wunnaxswap</title>
+  <meta name="theme-color" content="#f4f7ff" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+<main class="container-wide" style="padding-bottom:2rem">
+  <div class="tool-grid">
+    <aside class="card side-nav">
+      <a href="market-cap.html">Market Cap</a>
+      <a class="active" href="screener.html">Market Screener</a>
+      <a href="cross-rates.html">Cross Rates</a>
+      <a href="heat-map.html">Heat Map</a>
+      <a href="technical.html">Technical Analysis</a>
+      <a href="../arbitrage.html">Arbitrage Scanner</a>
+    </aside>
+    <section>
+      <div class="page-hero" style="padding-top:.4rem">
+        <h1>Market Screener</h1>
+        <p class="muted">Filter coins by performance, volume, market cap, and category — with logos and trade shortcuts.</p>
+      </div>
+      <div class="screener-filters card" style="padding:1rem">
+        <div class="field" style="margin:0"><label>Min 24h change %</label><input id="scrMinChange" type="number" value="-100" step="0.1" /></div>
+        <div class="field" style="margin:0"><label>Max 24h change %</label><input id="scrMaxChange" type="number" value="100" step="0.1" /></div>
+        <div class="field" style="margin:0"><label>Min volume (USD)</label><input id="scrMinVol" type="number" value="0" step="1000" /></div>
+        <div class="field" style="margin:0"><label>Min market cap (USD)</label><input id="scrMinMcap" type="number" value="0" step="1000000" /></div>
+        <div class="field" style="margin:0"><label>Category</label>
+          <select id="scrCat"><option value="all">All</option><option value="crypto">Crypto</option><option value="stable">Stablecoins</option><option value="futures">Futures listed</option></select>
+        </div>
+        <div class="field" style="margin:0"><label>Signal</label>
+          <select id="scrSignal"><option value="all">All</option><option value="hot">Hot</option><option value="weak">Weak</option><option value="stable">Stable</option></select>
+        </div>
+        <div class="field" style="margin:0"><label>Search</label><input id="scrSearch" placeholder="BTC, eth…" /></div>
+        <div class="field" style="margin:0;display:flex;align-items:end">
+          <button class="btn btn-soft" type="button" id="scrReset" style="width:100%">Reset filters</button>
+        </div>
+      </div>
+      <p class="muted" style="margin:.5rem 0 1rem" id="scrCount">— results</p>
+      <div class="table-wrap">
+        <table class="data" style="min-width:720px">
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Price</th>
+              <th>Change</th>
+              <th>Volume</th>
+              <th>Market cap</th>
+              <th>Signal</th>
+              <th>Chart</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="screenerBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/charts.js"></script>
+<script src="../assets/js/app.js"></script>
+</body>
+</html>
