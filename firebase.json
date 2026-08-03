@@ -1,0 +1,25 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/.git/**",
+      "docs/**",
+      "supabase/**",
+      "untitled folder/**",
+      "AI assistant look like/**",
+      "_generate.py",
+      "README.txt"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [{ "key": "Cache-Control", "value": "public,max-age=3600" }]
+      }
+    ],
+    "cleanUrls": false,
+    "trailingSlash": false
+  }
+}

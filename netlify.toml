@@ -1,0 +1,13 @@
+# Static multipage site — no SPA rewrite (each .html is a real page)
+[build]
+  publish = "."
+  command = "echo static"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"

@@ -1,41 +1,61 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function signedIn() {
       return request.auth != null;
     }
+
     function isOwner(userId) {
       return signedIn() && request.auth.uid == userId;
     }
 
-    // User profile + balances live on users/{uid}
+    // users/{uid} — profile + balances (paper trading only)
     match /users/{userId} {
       allow read: if isOwner(userId);
-      // Create own profile; clients may merge balances only via signed-in owner
+
       allow create: if isOwner(userId)
-        && request.resource.data.keys().hasAny(['email', 'displayName', 'balances']);
-      allow update: if isOwner(userId);
+        && request.resource.data.keys().hasAll(['email', 'displayName', 'balances'])
+        && request.resource.data.email is string
+        && request.resource.data.displayName is string
+        && request.resource.data.balances is map
+        && request.resource.data.balances.size() <= 64;
+
+      // Owner may update own profile/balances; no delete of account docs from client
+      allow update: if isOwner(userId)
+        && (!('balances' in request.resource.data)
+            || (request.resource.data.balances is map
+                && request.resource.data.balances.size() <= 64));
       allow delete: if false;
 
       match /orders/{orderId} {
         allow read, create: if isOwner(userId);
         allow update, delete: if false;
       }
+
       match /swaps/{swapId} {
         allow read, create: if isOwner(userId);
         allow update, delete: if false;
       }
+
       match /stakes/{stakeId} {
-        allow read, create, update: if isOwner(userId);
+        allow read, create: if isOwner(userId);
+        // Allow status transitions (active → closed) only
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'closedAt']);
         allow delete: if false;
       }
+
       match /favorites/{symbol} {
         allow read, write: if isOwner(userId);
       }
+
       match /ledger/{entryId} {
         allow read, create: if isOwner(userId);
         allow update, delete: if false;
       }
+
       match /depositAddresses/{id} {
         allow read, create: if isOwner(userId);
         allow update, delete: if false;

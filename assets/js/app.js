@@ -17,6 +17,14 @@
     return !!(window.WunnaxBackend && typeof WunnaxBackend.enabled === "function" && WunnaxBackend.enabled());
   }
 
+  /** Friendly message from backend or raw Error */
+  function backendErr(err) {
+    if (window.WunnaxBackend && typeof WunnaxBackend.formatError === "function") {
+      return WunnaxBackend.formatError(err);
+    }
+    return (err && err.message) || "Request failed";
+  }
+
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
 
@@ -1038,7 +1046,7 @@
           .then(function () { return refreshBackendWallet(); })
           .then(done)
           .catch(function (err) {
-            toast((err && err.message) || "Swap failed");
+            toast(backendErr(err) || "Swap failed");
           });
         return;
       }
@@ -1333,7 +1341,7 @@
         })
           .then(function () { return refreshBackendWallet(); })
           .then(done)
-          .catch(function (err) { toast((err && err.message) || "Order failed"); });
+          .catch(function (err) { toast(backendErr(err) || "Order failed"); });
         return;
       }
       applyLocal();
@@ -1682,7 +1690,7 @@
         WunnaxBackend.creditDemo(sym, amt)
           .then(function () { return refreshBackendWallet(); })
           .then(done)
-          .catch(function (err) { toast((err && err.message) || "Credit failed"); });
+          .catch(function (err) { toast(backendErr(err) || "Credit failed"); });
         return;
       }
       const w = getWallet();
@@ -1838,7 +1846,7 @@
               });
             })
             .catch(function (err) {
-              toast((err && err.message) || "Sign up failed");
+              toast(backendErr(err) || "Sign up failed");
             });
           return;
         }
@@ -1864,7 +1872,7 @@
               finishLogin(u || { name: email.split("@")[0], email: email, provider: "email", backend: "firebase" }, "Signed in");
             })
             .catch(function (err) {
-              toast((err && err.message) || "Invalid credentials");
+              toast(backendErr(err) || "Invalid credentials");
             });
           return;
         }
@@ -1957,9 +1965,23 @@
 
           if (backendOn() && WunnaxBackend.isAuthed() && (w[asset] || 0) >= amt) {
             WunnaxBackend.openStake(asset, amt, btn.dataset.term || "flexible", apr)
-              .then(function () { return refreshBackendWallet(); })
+              .then(function (res) {
+                if (res && res.stake_id) {
+                  const stakes = getStakes();
+                  stakes.unshift({
+                    id: res.stake_id,
+                    asset: asset,
+                    amount: amt,
+                    apr: apr,
+                    term: btn.dataset.term || "flexible",
+                    started: new Date().toLocaleString(),
+                  });
+                  setStakes(stakes);
+                }
+                return refreshBackendWallet();
+              })
               .then(done)
-              .catch(function (err) { toast((err && err.message) || "Stake failed"); });
+              .catch(function (err) { toast(backendErr(err) || "Stake failed"); });
             return;
           }
           localStake();
@@ -1968,9 +1990,8 @@
       });
     }
 
-    function renderStakePositions() {
+    function paintStakePositions(stakes) {
       const body = $("#stakePositions");
-      const stakes = getStakes();
       let totalUsd = 0;
       let daily = 0;
       stakes.forEach(function (s) {
@@ -1989,29 +2010,77 @@
             const a = assetBySymbol(s.asset);
             const px = a ? a.price : s.asset === "USDT" ? 1 : 0;
             const day = s.amount * px * (s.apr / 100) / 365;
+            const idAttr = s.id ? ' data-id="' + String(s.id).replace(/"/g, "") + '"' : "";
             return "<tr><td><div class=\"asset\">" + coinImg(s.asset) + " " + s.asset +
               "</div></td><td class=\"mono\">" + money(s.amount) +
               '</td><td class="up mono">' + s.apr + "%</td><td>" + s.term +
               "</td><td>" + s.started + '</td><td class="mono up">$' + money(day, 4) +
-              '</td><td><button class="btn btn-ghost btn-sm unstake-btn" data-i="' + i + '">Unstake</button></td></tr>';
+              '</td><td><button class="btn btn-ghost btn-sm unstake-btn" data-i="' + i + '"' +
+              idAttr + ">Unstake</button></td></tr>";
           }).join("")
         : '<tr><td colspan="7" class="muted">No active stakes yet.</td></tr>';
       $$(".unstake-btn", body).forEach(function (btn) {
         btn.addEventListener("click", function () {
           const i = parseInt(btn.dataset.i, 10);
-          const stakes = getStakes();
-          const s = stakes[i];
-          if (!s) return;
-          const w = getWallet();
-          w[s.asset] = (w[s.asset] || 0) + s.amount;
-          setWallet(w);
-          stakes.splice(i, 1);
-          setStakes(stakes);
-          toast("Unstaked " + s.asset);
-          renderWallet();
-          renderStakePositions();
+          const stakeId = btn.dataset.id || "";
+          const local = getStakes();
+          const s = local[i] || (stakeId ? { id: stakeId, asset: "?" } : null);
+          if (!s && !stakeId) return;
+
+          function localUnstake() {
+            const stakes = getStakes();
+            const row = stakes[i];
+            if (!row) return;
+            const w = getWallet();
+            w[row.asset] = (w[row.asset] || 0) + row.amount;
+            setWallet(w);
+            stakes.splice(i, 1);
+            setStakes(stakes);
+          }
+
+          function done(assetLabel) {
+            toast("Unstaked " + (assetLabel || "position"));
+            renderWallet();
+            renderStakePositions();
+          }
+
+          if (backendOn() && WunnaxBackend.isAuthed() && stakeId && WunnaxBackend.closeStake) {
+            WunnaxBackend.closeStake(stakeId)
+              .then(function (res) { return refreshBackendWallet().then(function () { return res; }); })
+              .then(function (res) {
+                // Drop matching local cache row if present
+                const stakes = getStakes().filter(function (x) {
+                  return x.id !== stakeId;
+                });
+                setStakes(stakes);
+                done((res && res.asset) || s.asset);
+              })
+              .catch(function (err) { toast(backendErr(err) || "Unstake failed"); });
+            return;
+          }
+          localUnstake();
+          done(s.asset);
         });
       });
+    }
+
+    function renderStakePositions() {
+      if (backendOn() && WunnaxBackend.isAuthed() && WunnaxBackend.listStakes) {
+        WunnaxBackend.listStakes()
+          .then(function (remote) {
+            if (remote && remote.length) {
+              setStakes(remote);
+              paintStakePositions(remote);
+            } else {
+              paintStakePositions(getStakes());
+            }
+          })
+          .catch(function () {
+            paintStakePositions(getStakes());
+          });
+        return;
+      }
+      paintStakePositions(getStakes());
     }
 
     renderPlans();
@@ -2325,7 +2394,11 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
-      WunnaxBackend.init()
+      var readyFn =
+        typeof WunnaxBackend.waitForReady === "function"
+          ? WunnaxBackend.waitForReady(12000)
+          : WunnaxBackend.init();
+      readyFn
         .then(function () { return refreshBackendUser(); })
         .then(function () { return refreshBackendWallet(); })
         .catch(function (e) { console.warn("[Wunnax] backend init", e); })
@@ -2342,6 +2415,7 @@
     getUser: getUser,
     money: money,
     backendOn: backendOn,
+    backendErr: backendErr,
     refreshBackendWallet: refreshBackendWallet,
   };
 })();
