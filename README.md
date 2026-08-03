@@ -9,6 +9,19 @@ Interactive **crypto marketplace product demo** — markets, trade, swap, arbitr
 
 ---
 
+## Live links
+
+| Link | Notes |
+|------|--------|
+| **https://rawcdn.githack.com/Dev-OLAOLU/wunnaxswap/main/index.html** | **Use this** — public CDN mirror of GitHub (works when `*.github.io` is blocked) |
+| https://cdn.jsdelivr.net/gh/Dev-OLAOLU/wunnaxswap@main/index.html | Alternate CDN (may cache; pin a commit if stale) |
+| https://dev-olaolu.github.io/wunnaxswap/ | Official GitHub Pages URL — **often unreachable** on networks that block GitHub Pages CDN |
+| http://localhost:5500/ | Local only (`python3 -m http.server 5500`) |
+
+**Why GitHub Pages fails for some people:** many ISPs/firewalls refuse connections to `*.github.io` (GitHub Pages IPs). The repo is fine; the CDN path is blocked. Use the **rawcdn.githack** link above, or deploy to Netlify/Firebase Hosting (configs included: `netlify.toml`, `firebase.json`).
+
+---
+
 ## Overview
 
 Wunnaxswap is a multi-page crypto product UI: discovery, trading surfaces, conversion, yield, wallet deposit UX, compliance pages, and an in-product AI help widget.
