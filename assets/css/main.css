@@ -1063,3 +1063,47 @@ table.data tr:hover td { background: #f8faff; }
   height: 16px;
   font-size: 0.55rem;
 }
+
+/* Landing bottom: supported exchanges & coins band */
+.supported-band {
+  margin-top: 2.5rem;
+  padding: 2.75rem 0 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(12, 16, 28, 0) 0%, rgba(12, 16, 28, 0.95) 12%, rgba(8, 11, 20, 1) 100%);
+}
+.supported-band-inner {
+  max-width: 1100px;
+}
+.supported-band-head {
+  margin-bottom: 1.25rem;
+}
+.supported-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(129, 140, 248, 0.95);
+}
+.supported-panel {
+  margin-top: 1rem;
+  padding: 1.15rem 1.25rem 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+.supported-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+.supported-panel-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.supported-band .disclaimer {
+  margin-top: 1.5rem;
+}

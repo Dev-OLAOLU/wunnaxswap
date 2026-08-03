@@ -59,26 +59,6 @@
     </div>
   </section>
 
-  <section class="section container" id="supported">
-    <div class="section-head">
-      <div>
-        <h2>Supported coins &amp; exchanges</h2>
-        <p>Trade and arbitrage across major venues and a curated set of liquid assets.</p>
-      </div>
-      <a class="btn btn-ghost btn-sm" href="markets.html">Open markets</a>
-    </div>
-    <div class="grid-2" style="gap:1.25rem">
-      <article class="card feature">
-        <h3>Supported exchanges <span class="muted" id="exchangeCount" style="font-size:.85rem;font-weight:500"></span></h3>
-        <div class="chip-grid" id="supportedExchanges"></div>
-      </article>
-      <article class="card feature">
-        <h3>Supported coins <span class="muted" id="coinCount" style="font-size:.85rem;font-weight:500"></span></h3>
-        <div class="chip-grid" id="supportedCoins"></div>
-      </article>
-    </div>
-  </section>
-
   <section class="section container">
     <div class="section-head">
       <div>
@@ -120,7 +100,38 @@
       </div>
       <a class="btn btn-primary" href="contact.html#listing">Apply for listing</a>
     </div>
-    <div class="disclaimer">Demo platform: prices and balances are simulated in your browser for product exploration. Not financial advice. Crypto is volatile — never invest more than you can afford to lose.</div>
+  </section>
+
+  <!-- Anchored bottom of landing: full supported lists (not mid-page floating) -->
+  <section class="supported-band" id="supported">
+    <div class="container supported-band-inner">
+      <div class="section-head supported-band-head">
+        <div>
+          <p class="supported-kicker">Coverage</p>
+          <h2>Supported exchanges &amp; coins</h2>
+          <p>Enlisted coverage for markets, swap, arbitrage, and deposit flows on Wunnaxswap.</p>
+        </div>
+        <a class="btn btn-soft btn-sm" href="markets.html">Browse all markets</a>
+      </div>
+
+      <div class="supported-panel">
+        <div class="supported-panel-head">
+          <h3>Supported exchanges</h3>
+          <span class="muted" id="exchangeCount"></span>
+        </div>
+        <div class="chip-grid" id="supportedExchanges"></div>
+      </div>
+
+      <div class="supported-panel">
+        <div class="supported-panel-head">
+          <h3>Supported coins</h3>
+          <span class="muted" id="coinCount"></span>
+        </div>
+        <div class="chip-grid" id="supportedCoins"></div>
+      </div>
+
+      <div class="disclaimer">Demo platform: prices and balances are simulated in your browser for product exploration. Not financial advice. Crypto is volatile — never invest more than you can afford to lose.</div>
+    </div>
   </section>
 </main>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
