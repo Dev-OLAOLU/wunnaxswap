@@ -5,13 +5,13 @@ Interactive **crypto marketplace product demo** — markets, trade, swap, arbitr
 [![Portfolio](https://img.shields.io/badge/Portfolio-Frontend%20Demo-6d28d9?style=for-the-badge)](https://github.com/Dev-OLAOLU/wunnaxswap)
 [![Stack](https://img.shields.io/badge/HTML-CSS-JS-e34f26?style=for-the-badge)](#tech-stack)
 
-> **Disclaimer:** Frontend product demo only. Prices and balances are simulated in the browser. This is **not** a regulated exchange, broker, or real custody product.
+> **Disclaimer:** Product demo. Prices and balances are paper/demo funds. This is **not** a regulated exchange, broker, or real custody product.
 
 ---
 
 ## Overview
 
-Wunnaxswap is a multi-page crypto product UI built to demonstrate end-to-end marketplace experience design: discovery, trading surfaces, conversion, yield, wallet deposit UX, compliance pages, and an in-product AI help widget.
+Wunnaxswap is a multi-page crypto product UI: discovery, trading surfaces, conversion, yield, wallet deposit UX, compliance pages, and an in-product AI help widget.
 
 Ideal as a portfolio piece for frontend / product engineering roles.
 
@@ -28,7 +28,7 @@ Ideal as a portfolio piece for frontend / product engineering roles.
 | **Earn** | Staking plans and positions |
 | **Wallet / Deposit** | Balances and network deposit address UI |
 | **Tools** | Market cap, screener, heat map, cross-rates, technicals |
-| **Auth** | Sign in / sign up (demo session) |
+| **Auth** | Sign in / sign up (localStorage **or** Supabase) |
 | **AI chat** | Floating assistant for product help + coin readouts |
 | **Legal / trust** | About, fees, FAQ, compliance, privacy, terms, contact |
 
@@ -37,7 +37,8 @@ Ideal as a portfolio piece for frontend / product engineering roles.
 ## Tech stack
 
 - HTML5 · CSS3 · Vanilla JavaScript
-- LocalStorage demo ledger
+- LocalStorage demo ledger (default)
+- **Supabase** (optional): Auth + paper wallet / orders / swaps / stakes
 - Client-side charts and price simulation
 - Static multi-page architecture (no build step required)
 
@@ -64,19 +65,33 @@ Double-click `start-server.command` in the project folder.
 
 ```
 index.html, markets.html, trade.html, swap.html, …
-assets/          # JS / CSS product assets
-profile/         # Account & wallet views
+assets/js/       # app.js, backend.js, supabase-config.js
+assets/css/
+profile/         # Wallet, deposit, staking, settings
 tools/           # Screener, heat map, etc.
+supabase/        # APPLY_IN_DASHBOARD.sql
+docs/            # SUPABASE_BACKEND.md
 ```
+
+---
+
+## Supabase backend
+
+1. Create a **new** Supabase project (separate from Better Home)  
+2. SQL Editor → run `supabase/APPLY_IN_DASHBOARD.sql`  
+3. Put Project URL + **anon** key in `assets/js/supabase-config.js`  
+4. Full guide: [docs/SUPABASE_BACKEND.md](docs/SUPABASE_BACKEND.md)
+
+When keys are empty, the app keeps using localStorage. When configured, sign-up/sign-in, wallet, swap, trade, and demo deposits use Supabase.
 
 ---
 
 ## Roadmap ideas
 
-- Wire real market data APIs
-- Replace demo auth with production auth
-- Connect deposit addresses to a real custody backend
-- Add automated visual regression tests
+- Live market data APIs  
+- OAuth (Google / Apple) in Supabase Auth  
+- Real custody / withdrawal rails (compliance required)  
+- Visual regression tests  
 
 ---
 
