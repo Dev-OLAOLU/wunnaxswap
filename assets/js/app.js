@@ -863,6 +863,43 @@
     return true;
   }
 
+  /**
+   * Public pages only (marketing + legal + auth).
+   * All product functions (trade, swap, markets, earn, tools, wallet…) need login.
+   */
+  function isPublicPage() {
+    const path = (location.pathname || "").replace(/\\/g, "/");
+    const file = (path.split("/").pop() || "index.html").toLowerCase() || "index.html";
+    const publicFiles = {
+      "": true,
+      "index.html": true,
+      "/": true,
+      "signin.html": true,
+      "signup.html": true,
+      "about.html": true,
+      "contact.html": true,
+      "faq.html": true,
+      "fees.html": true,
+      "terms.html": true,
+      "privacy.html": true,
+      "compliance.html": true,
+    };
+    if (publicFiles[file]) return true;
+    // Directory root → treat as home
+    if (!file || file.indexOf(".") === -1) return true;
+    return false;
+  }
+
+  /** Hard gate: redirect guests away from product pages before UI boots features */
+  function enforcePageAuth() {
+    if (isPublicPage()) return true;
+    if (isAuthed()) return true;
+    const next = location.pathname + location.search;
+    toast("Sign in to use Wunnaxswap");
+    location.replace(pathPrefix() + "signin.html?next=" + encodeURIComponent(next || "markets.html"));
+    return false;
+  }
+
   /* Page: markets table */
   function initMarketsPage() {
     const tbody = $("#marketsBody");
@@ -1706,10 +1743,15 @@
     localStorage.setItem(STORAGE.session, "1");
     if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
     toast(message || ("Signed in as " + (user.name || user.email)));
-    const next = new URLSearchParams(location.search).get("next");
+    const nextRaw = new URLSearchParams(location.search).get("next");
     const go = function () {
       setTimeout(function () {
-        location.href = next && !next.startsWith("http") ? next.replace(/^\//, "") : "profile/wallet.html";
+        var dest = "markets.html";
+        if (nextRaw && !/^https?:/i.test(nextRaw) && nextRaw.indexOf("//") === -1) {
+          // Allow relative paths like profile/wallet.html or /trade.html
+          dest = nextRaw.replace(/^\//, "");
+        }
+        location.href = dest;
       }, 650);
     };
     if (backendOn() && WunnaxBackend.isAuthed()) {
@@ -2370,6 +2412,9 @@
   }
 
   function bootApp() {
+    // Product pages require login first — do not init trading/wallet UI for guests
+    if (!enforcePageAuth()) return;
+
     renderShell();
     initHomeTickers();
     initMarketsPage();

@@ -13,12 +13,20 @@ Interactive **crypto marketplace product demo** — markets, trade, swap, arbitr
 
 | Link | Notes |
 |------|--------|
-| **https://rawcdn.githack.com/Dev-OLAOLU/wunnaxswap/main/index.html** | **Use this** — public CDN mirror of GitHub (works when `*.github.io` is blocked) |
-| https://cdn.jsdelivr.net/gh/Dev-OLAOLU/wunnaxswap@main/index.html | Alternate CDN (may cache; pin a commit if stale) |
-| https://dev-olaolu.github.io/wunnaxswap/ | Official GitHub Pages URL — **often unreachable** on networks that block GitHub Pages CDN |
-| http://localhost:5500/ | Local only (`python3 -m http.server 5500`) |
+| **http://localhost:5500/** | Local workspace (`python3 -m http.server 5500`) — preferred while developing |
+| **Cloudflare Tunnel** | Clean `*.trycloudflare.com` URL when tunnel is running (no githack interstitial) |
+| **Netlify / Firebase Hosting** | Permanent free domains — configs: `netlify.toml`, `firebase.json` |
+| https://dev-olaolu.github.io/wunnaxswap/ | GitHub Pages — **blocked on many networks** (connection refused to `*.github.io`) |
 
-**Why GitHub Pages fails for some people:** many ISPs/firewalls refuse connections to `*.github.io` (GitHub Pages IPs). The repo is fine; the CDN path is blocked. Use the **rawcdn.githack** link above, or deploy to Netlify/Firebase Hosting (configs included: `netlify.toml`, `firebase.json`).
+**Do not use raw.githack for demos** — it shows a third-party interstitial first and is not a clean workspace URL.
+
+**Auth:** Marketing pages (home, about, fees, legal, sign-in/up) are public. **All product functions** (markets, trade, swap, arbitrage, earn, tools, wallet, deposit, settings) require sign-in.
+
+### Permanent host (recommended — Netlify Drop, ~30s)
+
+1. Open https://app.netlify.com/drop  
+2. Drag the `Wunnaxswap` folder onto the page  
+3. Copy the `*.netlify.app` URL — clean HTTPS, no interstitial
 
 ---
 
