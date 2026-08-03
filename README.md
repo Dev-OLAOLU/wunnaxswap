@@ -28,7 +28,7 @@ Ideal as a portfolio piece for frontend / product engineering roles.
 | **Earn** | Staking plans and positions |
 | **Wallet / Deposit** | Balances and network deposit address UI |
 | **Tools** | Market cap, screener, heat map, cross-rates, technicals |
-| **Auth** | Sign in / sign up (localStorage **or** Supabase) |
+| **Auth** | Sign in / sign up (localStorage **or** Firebase) |
 | **AI chat** | Floating assistant for product help + coin readouts |
 | **Legal / trust** | About, fees, FAQ, compliance, privacy, terms, contact |
 
@@ -38,7 +38,7 @@ Ideal as a portfolio piece for frontend / product engineering roles.
 
 - HTML5 · CSS3 · Vanilla JavaScript
 - LocalStorage demo ledger (default)
-- **Supabase** (optional): Auth + paper wallet / orders / swaps / stakes
+- **Firebase** (optional, free Spark): Auth + Firestore paper wallet / orders / swaps / stakes
 - Client-side charts and price simulation
 - Static multi-page architecture (no build step required)
 
@@ -65,24 +65,25 @@ Double-click `start-server.command` in the project folder.
 
 ```
 index.html, markets.html, trade.html, swap.html, …
-assets/js/       # app.js, backend.js, supabase-config.js
+assets/js/       # app.js, backend.js, firebase-config.js
 assets/css/
 profile/         # Wallet, deposit, staking, settings
 tools/           # Screener, heat map, etc.
-supabase/        # APPLY_IN_DASHBOARD.sql
-docs/            # SUPABASE_BACKEND.md
+firebase/        # firestore.rules
+docs/            # FIREBASE_BACKEND.md
 ```
 
 ---
 
-## Supabase backend
+## Firebase backend (free)
 
-1. Create a **new** Supabase project (separate from Better Home)  
-2. SQL Editor → run `supabase/APPLY_IN_DASHBOARD.sql`  
-3. Put Project URL + **anon** key in `assets/js/supabase-config.js`  
-4. Full guide: [docs/SUPABASE_BACKEND.md](docs/SUPABASE_BACKEND.md)
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)  
+2. Enable **Email/Password** Auth + **Firestore**  
+3. Publish rules from `firebase/firestore.rules`  
+4. Paste web config into `assets/js/firebase-config.js`  
+5. Full guide: [docs/FIREBASE_BACKEND.md](docs/FIREBASE_BACKEND.md)
 
-When keys are empty, the app keeps using localStorage. When configured, sign-up/sign-in, wallet, swap, trade, and demo deposits use Supabase.
+When config fields are empty, the app uses **localStorage**. When filled, sign-up/sign-in, wallet, swap, trade, and demo deposits use Firebase.
 
 ---
 

@@ -9,7 +9,7 @@
     stakes: "wunnax_stakes",
   };
 
-  /** Supabase backend (optional — see assets/js/supabase-config.js) */
+  /** Firebase backend (optional — see assets/js/firebase-config.js) */
   let backendWalletCache = null;
   let backendUserCache = null;
 
@@ -1833,7 +1833,7 @@
                 return;
               }
               return refreshBackendUser().then(function (u) {
-                finishLogin(u || { name: name, email: email, provider: "email", backend: "supabase" },
+                finishLogin(u || { name: name, email: email, provider: "email", backend: "firebase" },
                   "Welcome to Wunnaxswap, " + name.split(" ")[0] + "!");
               });
             })
@@ -1861,7 +1861,7 @@
           WunnaxBackend.signIn(email, pass)
             .then(function () { return refreshBackendUser(); })
             .then(function (u) {
-              finishLogin(u || { name: email.split("@")[0], email: email, provider: "email", backend: "supabase" }, "Signed in");
+              finishLogin(u || { name: email.split("@")[0], email: email, provider: "email", backend: "firebase" }, "Signed in");
             })
             .catch(function (err) {
               toast((err && err.message) || "Invalid credentials");

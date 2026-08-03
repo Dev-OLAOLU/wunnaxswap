@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // User profile + balances live on users/{uid}
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      // Create own profile; clients may merge balances only via signed-in owner
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAny(['email', 'displayName', 'balances']);
+      allow update: if isOwner(userId);
+      allow delete: if false;
+
+      match /orders/{orderId} {
+        allow read, create: if isOwner(userId);
+        allow update, delete: if false;
+      }
+      match /swaps/{swapId} {
+        allow read, create: if isOwner(userId);
+        allow update, delete: if false;
+      }
+      match /stakes/{stakeId} {
+        allow read, create, update: if isOwner(userId);
+        allow delete: if false;
+      }
+      match /favorites/{symbol} {
+        allow read, write: if isOwner(userId);
+      }
+      match /ledger/{entryId} {
+        allow read, create: if isOwner(userId);
+        allow update, delete: if false;
+      }
+      match /depositAddresses/{id} {
+        allow read, create: if isOwner(userId);
+        allow update, delete: if false;
+      }
+    }
+  }
+}
