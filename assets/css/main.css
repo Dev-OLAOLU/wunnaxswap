@@ -30,12 +30,47 @@ body {
   min-height: 100vh;
   font-family: var(--font);
   color: var(--text);
-  background:
+  position: relative;
+  isolation: isolate;
+  background-color: #05080f;
+  background-image:
+    /* Candlestick chart pattern */
+    url("../img/candles-bg.svg"),
     radial-gradient(1000px 560px at 10% -12%, rgba(56, 189, 248, 0.14), transparent 55%),
     radial-gradient(900px 500px at 95% 0%, rgba(99, 102, 241, 0.16), transparent 52%),
     radial-gradient(800px 420px at 50% 110%, rgba(14, 165, 233, 0.08), transparent 55%),
     linear-gradient(180deg, #05080f 0%, #070b14 40%, #0a101c 100%);
+  background-size:
+    480px 320px,
+    auto,
+    auto,
+    auto,
+    auto;
+  background-repeat:
+    repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat;
+  background-position:
+    0 0,
+    10% -12%,
+    95% 0%,
+    50% 110%,
+    center;
+  background-attachment: fixed, scroll, scroll, scroll, scroll;
   line-height: 1.5;
+}
+/* Soft veil so candles stay in the background (text stays readable) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(5, 8, 15, 0.55) 0%, rgba(7, 11, 20, 0.72) 45%, rgba(5, 8, 15, 0.82) 100%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(34, 211, 238, 0.06), transparent 60%);
 }
 a { color: var(--cyan); text-decoration: none; }
 a:hover { text-decoration: underline; color: #67e8f9; }
@@ -1109,3 +1144,18 @@ table.data tr:hover td { background: rgba(34, 211, 238, 0.06); }
 .supported-band .disclaimer {
   margin-top: 1.5rem;
 }
+
+/* Keep content above fixed candle backdrop */
+body > main,
+body > header,
+body > footer,
+.topbar,
+.footer,
+.mobile-nav,
+.toast-wrap,
+.wx-chat-root,
+.oauth-overlay {
+  position: relative;
+  z-index: 1;
+}
+.topbar { z-index: 50; }
