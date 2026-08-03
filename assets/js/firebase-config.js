@@ -11,12 +11,12 @@
  * Never put Admin/service account keys in the browser.
  */
 window.WUNNAX_FIREBASE = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: "",
+  apiKey: "AIzaSyAloxjP-p76entAz4xK5SXQ96dRtRLRAuY",
+  authDomain: "wunnaxswap.firebaseapp.com",
+  projectId: "wunnaxswap",
+  storageBucket: "wunnaxswap.firebasestorage.app",
+  messagingSenderId: "567140064736",
+  appId: "1:567140064736:web:4df9736782798f7a0b1f85"
 };
 
 /** True when Firebase web config is filled in. */
