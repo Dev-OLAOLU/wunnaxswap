@@ -1020,3 +1020,46 @@ table.data tr:hover td { background: #f8faff; }
 @media (max-width: 560px) {
   .stats, .kpi-row { grid-template-columns: 1fr; }
 }
+
+/* Supported coins & exchanges chips */
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.5rem;
+  margin-top: 0.85rem;
+}
+.chip-grid .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+}
+.chip-grid .chip img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.chip-grid .chip.ex {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.28);
+}
+.chip-grid .chip.stable {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.chip-grid .chip .coin-logo {
+  width: 16px !important;
+  height: 16px !important;
+}
+.chip-grid .chip .asset-badge {
+  width: 16px;
+  height: 16px;
+  font-size: 0.55rem;
+}

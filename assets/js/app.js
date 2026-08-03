@@ -2270,6 +2270,36 @@
     });
   }
 
+
+  function initSupportedLists() {
+    const exEl = $("#supportedExchanges");
+    const coinEl = $("#supportedCoins");
+    if (!exEl && !coinEl) return;
+    if (!window.WUNNA) return;
+
+    if (exEl) {
+      const list = WUNNA.SUPPORTED_EXCHANGES || (WUNNA.EXCHANGES || []).filter(function (e) {
+        return e !== "Wunnaxswap";
+      });
+      exEl.innerHTML = list.map(function (name) {
+        return '<span class="chip ex">' + name + "</span>";
+      }).join("");
+      if ($("#exchangeCount")) $("#exchangeCount").textContent = "(" + list.length + ")";
+    }
+
+    if (coinEl) {
+      const coins = WUNNA.SUPPORTED_COINS || (WUNNA.ASSETS || []).map(function (a) {
+        return { symbol: a.symbol, name: a.name, category: a.category };
+      });
+      coinEl.innerHTML = coins.map(function (c) {
+        const cls = c.category === "stable" ? "chip stable" : "chip";
+        const img = coinImg(c.symbol, "chip-logo");
+        return '<span class="' + cls + '">' + img + " " + c.name + " <span class=\"muted\">" + c.symbol + "</span></span>";
+      }).join("");
+      if ($("#coinCount")) $("#coinCount").textContent = "(" + coins.length + ")";
+    }
+  }
+
   function bootApp() {
     renderShell();
     initHomeTickers();
@@ -2289,6 +2319,7 @@
     initSettings();
     renderOrdersTable();
     renderWallet();
+    initSupportedLists();
     setInterval(tickPrices, 2200);
   }
 
