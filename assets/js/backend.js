@@ -141,7 +141,6 @@
       "auth/user-disabled": "This account has been disabled",
       "auth/account-exists-with-different-credential":
         "An account already exists with this email using a different sign-in method",
-      "auth/network-request-failed": "Network error — check your connection",
       "permission-denied": "Permission denied — check Firestore rules",
       "unavailable": "Service temporarily unavailable",
     };
