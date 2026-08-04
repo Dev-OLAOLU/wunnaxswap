@@ -917,7 +917,7 @@
     if (isAuthed()) return true;
     const next = location.pathname + location.search;
     toast("Sign in to use Wunnaxswap");
-    location.replace(pathPrefix() + "signin.html?next=" + encodeURIComponent(next || "markets.html"));
+    location.replace(pathPrefix() + "signin.html?next=" + encodeURIComponent(next || "index.html"));
     return false;
   }
 
@@ -1764,20 +1764,14 @@
     localStorage.setItem(STORAGE.session, "1");
     if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
     toast(message || ("Signed in as " + (user.name || user.email)));
-    var nextRaw =
-      new URLSearchParams(location.search).get("next") ||
-      sessionStorage.getItem("wunnax_auth_next");
+    // Always land on home / landing page after any successful login
     try {
       sessionStorage.removeItem("wunnax_auth_next");
     } catch (_) {}
     const go = function () {
       setTimeout(function () {
-        var dest = "markets.html";
-        if (nextRaw && !/^https?:/i.test(nextRaw) && nextRaw.indexOf("//") === -1) {
-          dest = String(nextRaw).replace(/^\//, "");
-        }
-        location.href = dest;
-      }, 650);
+        location.href = pathPrefix() + "index.html";
+      }, 500);
     };
     if (backendOn() && WunnaxBackend.isAuthed()) {
       refreshBackendWallet().finally(go);
@@ -1846,11 +1840,8 @@
   function socialLogin(provider) {
     // Real Google OAuth via Firebase (redirect on Netlify — most reliable)
     if (provider === "google" && backendOn() && WunnaxBackend.signInWithOAuth) {
-      var next =
-        new URLSearchParams(location.search).get("next") ||
-        "markets.html";
       try {
-        sessionStorage.setItem("wunnax_auth_next", next);
+        sessionStorage.setItem("wunnax_auth_next", "index.html");
         sessionStorage.removeItem("wunnax_auth_error");
       } catch (_) {}
       var errEl = $("#authError");
