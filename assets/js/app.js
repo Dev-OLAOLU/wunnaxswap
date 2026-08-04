@@ -1786,10 +1786,23 @@
     }
     try { toast(okMsg); } catch (_) {}
 
-    // Immediate hard navigation to home — do not wait on anything
+    // Force home — multiple fallbacks (this was failing silently for users)
     setTimeout(function () {
-      window.location.href = homeUrl();
+      var url = "/index.html";
+      try {
+        url = homeUrl() || "/index.html";
+      } catch (_) {}
+      try {
+        window.location.replace(url);
+      } catch (_) {
+        window.location.href = url;
+      }
     }, 500);
+    setTimeout(function () {
+      if (/signin|signup/i.test(location.pathname || "")) {
+        window.location.href = "/index.html";
+      }
+    }, 1500);
   }
 
   function showOAuthModal(provider, onDone) {

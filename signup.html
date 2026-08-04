@@ -13,9 +13,9 @@
 
 <div class="auth-wrap">
   <div class="card auth-box">
-    <a class="brand auth-brand" href="index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
+    <a class="brand auth-brand" href="/index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
     <h1>Create account</h1>
-    <p class="muted">Choose an email and a password (min 6 characters). You will land on the home page after sign-up.</p>
+    <p class="muted">Pick email + password (min 6 chars). Success → home page.</p>
 
     <form id="signupForm">
       <div class="field">
@@ -32,11 +32,11 @@
       </div>
       <div class="field">
         <label for="suPass2">Confirm password</label>
-        <input id="suPass2" type="password" required minlength="6" placeholder="Type the same password again" autocomplete="new-password" />
+        <input id="suPass2" type="password" required minlength="6" placeholder="Same password again" autocomplete="new-password" />
       </div>
       <div class="checkline">
         <input type="checkbox" required id="suTerms" />
-        <span>I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy</a></span>
+        <span>I agree to the Terms</span>
       </div>
       <p id="authError" class="auth-error" hidden role="alert"></p>
       <button class="btn btn-primary" style="width:100%" type="submit">Create account</button>
@@ -49,7 +49,7 @@
     </button>
 
     <p class="muted" style="margin:1.15rem 0 0;text-align:center;font-size:.9rem">
-      Already have an account? <a href="signin.html"><strong>Sign in</strong></a>
+      Already have an account? <a href="/signin.html"><strong>Sign in</strong></a>
     </p>
   </div>
 </div>
@@ -57,9 +57,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/js/firebase-config.js"></script>
-<script src="assets/js/backend.js"></script>
-<script src="assets/js/data.js"></script>
-<script src="assets/js/app.js"></script>
+<script src="/assets/js/firebase-config.js"></script>
+<script src="/assets/js/backend.js"></script>
+<script src="/assets/js/auth-page.js"></script>
 </body>
 </html>
