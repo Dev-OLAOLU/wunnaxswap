@@ -151,6 +151,11 @@
       "auth/user-disabled": "This account has been disabled",
       "auth/account-exists-with-different-credential":
         "An account already exists with this email using a different sign-in method",
+      "auth/expired-action-code": "This reset code has expired. Request a new one.",
+      "auth/invalid-action-code": "Invalid or already-used reset code. Request a new one.",
+      "auth/missing-continue-uri": "Reset link configuration error. Contact support.",
+      "auth/unauthorized-continue-uri":
+        "Reset redirect domain not allowed. Add this site in Firebase authorized domains.",
       "permission-denied": "Permission denied — check Firestore rules",
       "unavailable": "Service temporarily unavailable",
     };
@@ -448,6 +453,86 @@
         console.warn("[WunnaxBackend] signIn wallet (non-fatal)", wErr);
       }
       return { user: cred.user, session: true };
+    } catch (e) {
+      throw fail(formatError(e), e.code);
+    }
+  }
+
+  /**
+   * Email a password-reset message (Firebase Auth).
+   * The email includes a secure link / oobCode the user uses to set a new password.
+   * @param {string} email
+   * @returns {Promise<{sent:boolean,email:string}>}
+   */
+  async function sendPasswordReset(email) {
+    ensureApp();
+    if (!auth) throw fail("Firebase not configured");
+    email = validateEmail(email);
+
+    var continueUrl = "/reset-password.html";
+    try {
+      continueUrl = (location.origin || "") + "/reset-password.html";
+    } catch (_) {}
+
+    var actionCodeSettings = {
+      url: continueUrl,
+      handleCodeInApp: false,
+    };
+
+    try {
+      await auth.sendPasswordResetEmail(email, actionCodeSettings);
+      try {
+        sessionStorage.setItem("wunnax_reset_email", email);
+      } catch (_) {}
+      return { sent: true, email: email };
+    } catch (e) {
+      var code = (e && e.code) || "";
+      // Avoid account enumeration: treat missing user like a successful send
+      if (code === "auth/user-not-found") {
+        try {
+          sessionStorage.setItem("wunnax_reset_email", email);
+        } catch (_) {}
+        return { sent: true, email: email };
+      }
+      throw fail(formatError(e), code);
+    }
+  }
+
+  /**
+   * Check a password-reset oobCode from the email link.
+   * @param {string} oobCode
+   * @returns {Promise<{email:string}>}
+   */
+  async function verifyPasswordResetCode(oobCode) {
+    ensureApp();
+    if (!auth) throw fail("Firebase not configured");
+    oobCode = String(oobCode || "").trim();
+    if (!oobCode) throw fail("Enter the reset code from your email", "auth/invalid-action-code");
+    try {
+      var email = await auth.verifyPasswordResetCode(oobCode);
+      return { email: email };
+    } catch (e) {
+      throw fail(formatError(e), e.code);
+    }
+  }
+
+  /**
+   * Complete password reset with the email oobCode + new password.
+   * @param {string} oobCode
+   * @param {string} newPassword
+   */
+  async function confirmPasswordReset(oobCode, newPassword) {
+    ensureApp();
+    if (!auth) throw fail("Firebase not configured");
+    oobCode = String(oobCode || "").trim();
+    if (!oobCode) throw fail("Enter the reset code from your email", "auth/invalid-action-code");
+    validatePassword(newPassword);
+    try {
+      await auth.confirmPasswordReset(oobCode, newPassword);
+      try {
+        sessionStorage.removeItem("wunnax_reset_email");
+      } catch (_) {}
+      return { ok: true };
     } catch (e) {
       throw fail(formatError(e), e.code);
     }
@@ -1102,6 +1187,9 @@
 
     signUp: signUp,
     signIn: signIn,
+    sendPasswordReset: sendPasswordReset,
+    verifyPasswordResetCode: verifyPasswordResetCode,
+    confirmPasswordReset: confirmPasswordReset,
     signInWithOAuth: signInWithOAuth,
     completeRedirectSignIn: completeRedirectSignIn,
     signOut: signOut,

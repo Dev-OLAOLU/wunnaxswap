@@ -23,7 +23,10 @@
         <input id="siEmail" type="email" required placeholder="you@email.com" autocomplete="username" />
       </div>
       <div class="field">
-        <label for="siPass">Password</label>
+        <div class="field-label-row">
+          <label for="siPass">Password</label>
+          <a class="auth-forgot-link" href="/forgot-password.html">Forgot password?</a>
+        </div>
         <input id="siPass" type="password" required placeholder="Your password" autocomplete="current-password" />
       </div>
       <p id="authError" class="auth-error" hidden role="alert"></p>
@@ -45,9 +48,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="/assets/js/firebase-config.js?v=20260804b"></script>
-<script src="/assets/js/backend.js?v=20260804b"></script>
+<script src="/assets/js/firebase-config.js?v=20260804d"></script>
+<script src="/assets/js/backend.js?v=20260804d"></script>
 <!-- Dedicated login: success banner → force home -->
-<script src="/assets/js/auth-page.js?v=20260804b"></script>
+<script src="/assets/js/auth-page.js?v=20260804d"></script>
+<script src="/assets/js/password-reset.js?v=20260804d"></script>
 </body>
 </html>

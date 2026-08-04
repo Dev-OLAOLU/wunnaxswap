@@ -940,12 +940,18 @@
     let name = clean.split("/").pop() || "";
     name = name.replace(/\.html$/, "");
     if (!name || name === "/" || clean === "/") name = "index";
-    return name === "index" || name === "signin" || name === "signup";
+    return (
+      name === "index" ||
+      name === "signin" ||
+      name === "signup" ||
+      name === "forgot-password" ||
+      name === "reset-password"
+    );
   }
 
   function isAuthPage() {
     const path = (location.pathname || "").toLowerCase();
-    return /signin|signup/.test(path);
+    return /signin|signup|forgot-password|reset-password/.test(path);
   }
 
   function signInUrl() {
