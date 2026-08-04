@@ -107,9 +107,23 @@
     try { return JSON.parse(localStorage.getItem(STORAGE.user) || "null"); } catch (e) { return null; }
   }
   function setUser(u) { localStorage.setItem(STORAGE.user, JSON.stringify(u)); }
+  /**
+   * Real session only.
+   * When Firebase is on: must have Firebase Auth user (localStorage alone is NOT enough).
+   * Offline demo mode (no Firebase): localStorage session flag.
+   */
   function isAuthed() {
-    if (backendOn()) return !!(WunnaxBackend.isAuthed() || backendUserCache || localStorage.getItem(STORAGE.session));
+    if (backendOn()) {
+      return !!(window.WunnaxBackend && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed());
+    }
     return !!localStorage.getItem(STORAGE.session);
+  }
+
+  /** Drop fake / stale guest sessions when Firebase is the source of truth */
+  function clearLocalAuth() {
+    localStorage.removeItem(STORAGE.session);
+    backendUserCache = null;
+    backendWalletCache = null;
   }
 
   function defaultWallet() {
@@ -272,9 +286,8 @@
       $("#mobileNav").classList.toggle("open");
     });
     $("#logoutBtn") && $("#logoutBtn").addEventListener("click", function () {
-      localStorage.removeItem(STORAGE.session);
-      backendUserCache = null;
-      backendWalletCache = null;
+      clearLocalAuth();
+      localStorage.removeItem(STORAGE.user);
       if (backendOn()) {
         WunnaxBackend.signOut().finally(function () {
           toast("Signed out");
@@ -866,33 +879,41 @@
   /**
    * Public pages only (marketing + legal + auth).
    * All product functions (trade, swap, markets, earn, tools, wallet…) need login.
+   * Handles both "markets.html" and clean URLs like "/markets".
    */
   function isPublicPage() {
-    const path = (location.pathname || "").replace(/\\/g, "/");
-    const file = (path.split("/").pop() || "index.html").toLowerCase() || "index.html";
-    const publicFiles = {
+    const path = (location.pathname || "/").replace(/\\/g, "/").toLowerCase();
+    const clean = path.replace(/\/+$/, "") || "/";
+    // Nested product areas are never public
+    if (clean.indexOf("/profile") !== -1 || clean.indexOf("/tools") !== -1) return false;
+
+    let name = clean.split("/").pop() || "";
+    name = name.replace(/\.html$/, "");
+    if (!name || name === "/" || clean === "/") name = "index";
+
+    const publicNames = {
+      index: true,
       "": true,
-      "index.html": true,
-      "/": true,
-      "signin.html": true,
-      "signup.html": true,
-      "about.html": true,
-      "contact.html": true,
-      "faq.html": true,
-      "fees.html": true,
-      "terms.html": true,
-      "privacy.html": true,
-      "compliance.html": true,
+      signin: true,
+      signup: true,
+      about: true,
+      contact: true,
+      faq: true,
+      fees: true,
+      terms: true,
+      privacy: true,
+      compliance: true,
     };
-    if (publicFiles[file]) return true;
-    // Directory root → treat as home
-    if (!file || file.indexOf(".") === -1) return true;
-    return false;
+    return !!publicNames[name];
   }
 
   /** Hard gate: redirect guests away from product pages before UI boots features */
   function enforcePageAuth() {
     if (isPublicPage()) return true;
+    // Firebase on but not signed in → wipe stale local "session" flag
+    if (backendOn() && !isAuthed()) {
+      clearLocalAuth();
+    }
     if (isAuthed()) return true;
     const next = location.pathname + location.search;
     toast("Sign in to use Wunnaxswap");
@@ -1800,39 +1821,57 @@
   }
 
   function socialLogin(provider) {
+    // Real Google OAuth via Firebase when backend is configured
+    if (provider === "google" && backendOn() && WunnaxBackend.signInWithOAuth) {
+      toast("Opening Google…");
+      WunnaxBackend.signInWithOAuth("google")
+        .then(function () {
+          return refreshBackendUser();
+        })
+        .then(function (u) {
+          finishLogin(
+            u || { name: "Trader", email: "", provider: "google", backend: "firebase" },
+            "Signed in with Google"
+          );
+        })
+        .catch(function (err) {
+          toast(backendErr(err) || "Google sign-in failed. Enable Google in Firebase Console.");
+        });
+      return;
+    }
+
+    if (provider === "google" && !backendOn()) {
+      toast("Firebase is not configured — cannot use Google sign-in");
+      return;
+    }
+
+    if (provider === "apple") {
+      toast("Apple Sign-In is not enabled yet — use Google or email");
+      return;
+    }
+
+    // Device / passkey: not a real login when Firebase is on
+    if (backendOn()) {
+      toast("Use Google or email to sign in");
+      return;
+    }
+
+    // Offline demo only (no Firebase)
     showOAuthModal(provider, function () {
       const stamp = Date.now().toString(36);
-      let name, email;
-      if (provider === "google") {
-        name = "Google User";
-        email = "user." + stamp + "@gmail.com";
-      } else if (provider === "apple") {
-        name = "Apple User";
-        email = "user." + stamp + "@privaterelay.appleid.com";
-      } else {
-        name = "Device User";
-        email = "device." + stamp + "@wunnaxswap.local";
-      }
-      // Prefer existing local profile email if already registered with same provider
-      const existing = getUser();
-      if (existing && existing.provider === provider) {
-        finishLogin(existing, "Welcome back via " + provider);
-        return;
-      }
       finishLogin(
         {
-          name: name,
-          email: email,
-          provider: provider,
+          name: "Device User",
+          email: "device." + stamp + "@wunnaxswap.local",
+          provider: "device",
           created: Date.now(),
         },
-        "Signed in with " + (provider === "google" ? "Google" : provider === "apple" ? "Apple" : "this device")
+        "Signed in with this device (demo)"
       );
     });
   }
 
   function devicePasskeyLogin() {
-    // Device / Face ID / Touch ID style flow (demo). Wire WebAuthn passkeys in production.
     socialLogin("device");
   }
 
@@ -1893,10 +1932,8 @@
           return;
         }
 
-        finishLogin(
-          { name: name, email: email, pass: pass, provider: "email", created: Date.now() },
-          "Welcome to Wunnaxswap, " + name.split(" ")[0] + "!"
-        );
+        // No Firebase → block account creation (product requires backend auth)
+        toast("Backend not available — cannot create account");
       });
     }
     if (signin) {
@@ -1919,19 +1956,7 @@
           return;
         }
 
-        const user = getUser();
-        if (!user || user.email !== email || (user.pass && user.pass !== pass)) {
-          if (email && pass.length >= 4) {
-            finishLogin(
-              { name: email.split("@")[0], email: email, pass: pass, provider: "email", created: Date.now() },
-              "Signed in"
-            );
-          } else {
-            return toast("Invalid credentials");
-          }
-          return;
-        }
-        finishLogin(user, "Signed in");
+        toast("Backend not available — cannot sign in");
       });
     }
   }
@@ -2467,8 +2492,14 @@
           ? WunnaxBackend.waitForReady(12000)
           : WunnaxBackend.init();
       readyFn
-        .then(function () { return refreshBackendUser(); })
-        .then(function () { return refreshBackendWallet(); })
+        .then(function () {
+          // Drop localStorage-only "fake" sessions once Firebase has answered
+          if (!WunnaxBackend.isAuthed()) clearLocalAuth();
+          return refreshBackendUser();
+        })
+        .then(function () {
+          if (WunnaxBackend.isAuthed()) return refreshBackendWallet();
+        })
         .catch(function (e) { console.warn("[Wunnax] backend init", e); })
         .finally(bootApp);
       return;
