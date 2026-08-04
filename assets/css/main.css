@@ -123,7 +123,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
   display: block; padding: .55rem .7rem; border-radius: 8px; color: var(--muted); font-size: .88rem;
 }
 .drop-menu a:hover { background: var(--bg-2); color: var(--text); text-decoration: none; }
-.nav-actions { display: flex; align-items: center; gap: .5rem; }
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  z-index: 2;
+}
+.nav-actions .btn-sm {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
 .btn {
   appearance: none; border: 0; cursor: pointer; border-radius: 999px;
   padding: .7rem 1.1rem; font-weight: 700; font-size: .9rem;
@@ -1117,9 +1129,19 @@ table.data tr:hover td { background: rgba(34, 211, 238, 0.06); }
   .hero, .grid-3, .grid-4, .grid-2, .tool-grid, .orderbook, .footer-grid, .stats, .kpi-row, .roadmap {
     grid-template-columns: 1fr;
   }
-  .nav, .nav-actions .hide-sm { display: none; }
+  /* Collapse main links into ☰ menu — keep auth buttons visible */
+  .nav { display: none; }
+  .nav-actions { display: flex !important; }
+  .nav-actions .hide-sm { display: none; }
   .menu-toggle { display: grid; place-items: center; }
   .stats { grid-template-columns: 1fr 1fr; }
+  .topbar-inner { gap: 0.5rem; }
+  .brand { font-size: 1rem; }
+  .brand span:not(.brand-mark) { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (max-width: 420px) {
+  .nav-actions .btn-sm { padding: 0.4rem 0.55rem; font-size: 0.78rem; }
 }
 @media (max-width: 560px) {
   .stats, .kpi-row { grid-template-columns: 1fr; }

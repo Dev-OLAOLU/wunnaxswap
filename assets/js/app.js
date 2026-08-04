@@ -181,9 +181,18 @@
 
   /* Shell: nav + footer + chat */
   function pathPrefix() {
-    const path = location.pathname.replace(/\\/g, "/");
+    const path = (location.pathname || "").replace(/\\/g, "/");
     if (path.includes("/tools/") || path.includes("/profile/")) return "../";
     return "";
+  }
+
+  /** Always land on site home (works on Netlify root + nested paths) */
+  function homeUrl() {
+    try {
+      return location.origin + "/";
+    } catch (e) {
+      return pathPrefix() + "index.html";
+    }
   }
 
   function renderShell() {
@@ -191,11 +200,16 @@
     const user = getUser();
     const authed = isAuthed();
 
+    // Avoid duplicate bars if boot runs twice
+    $$(".topbar, .mobile-nav, footer.footer").forEach(function (el) {
+      el.parentNode && el.parentNode.removeChild(el);
+    });
+
     const header = document.createElement("header");
     header.className = "topbar";
     header.innerHTML =
       '<div class="container topbar-inner">' +
-      '<a class="brand" href="' + p + 'index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>' +
+      '<a class="brand" href="' + homeUrl() + '"><span class="brand-mark">WX</span> Wunnaxswap</a>' +
       '<nav class="nav" id="mainNav">' +
       '<a href="' + p + 'markets.html">Markets</a>' +
       '<div class="drop"><button type="button">Trade ▾</button><div class="drop-menu">' +
@@ -218,12 +232,13 @@
       "</nav>" +
       '<div class="nav-actions">' +
       (authed
-        ? '<a class="btn btn-ghost btn-sm hide-sm" href="' + p + 'profile/wallet.html">Wallet</a>' +
+        ? '<a class="btn btn-ghost btn-sm" href="' + p + 'profile/wallet.html">Wallet</a>' +
           '<a class="btn btn-soft btn-sm" href="' + p + 'profile/settings.html">' +
-          (user && user.name ? user.name.split(" ")[0] : "Account") +
+          (user && user.name ? String(user.name).split(" ")[0] : "Account") +
           "</a>" +
           '<button class="btn btn-ghost btn-sm" type="button" id="logoutBtn">Log out</button>'
-        : '<a class="btn btn-ghost btn-sm hide-sm" href="' + p + 'signin.html">Sign In</a>' +
+        : // Always visible Sign In + Sign Up (no hide-sm — was hiding Sign In on phones)
+          '<a class="btn btn-ghost btn-sm" href="' + p + 'signin.html">Sign In</a>' +
           '<a class="btn btn-primary btn-sm" href="' + p + 'signup.html">Sign Up</a>') +
       '<button class="menu-toggle" type="button" id="menuToggle" aria-label="Menu">☰</button>' +
       "</div></div>";
@@ -232,7 +247,7 @@
     mobile.className = "mobile-nav";
     mobile.id = "mobileNav";
     mobile.innerHTML =
-      '<a href="' + p + 'index.html">Home</a>' +
+      '<a href="' + homeUrl() + '">Home</a>' +
       '<a href="' + p + 'markets.html">Markets</a>' +
       '<a href="' + p + 'trade.html">Spot Trade</a>' +
       '<a href="' + p + 'swap.html">Swap</a>' +
@@ -244,8 +259,8 @@
       '<a href="' + p + 'contact.html">Contact</a>' +
       '<a href="' + p + 'faq.html">FAQ</a>' +
       (authed
-        ? '<a href="' + p + 'profile/wallet.html">Wallet</a><a href="' + p + 'profile/deposit.html">Deposit</a>'
-        : '<a href="' + p + 'signin.html">Sign In</a><a href="' + p + 'signup.html">Sign Up</a>');
+        ? '<a href="' + p + 'profile/wallet.html">Wallet</a><a href="' + p + 'profile/deposit.html">Deposit</a><button type="button" class="btn btn-ghost btn-sm" id="logoutBtnMobile">Log out</button>'
+        : '<a class="btn btn-ghost btn-sm" href="' + p + 'signin.html">Sign In</a><a class="btn btn-primary btn-sm" href="' + p + 'signup.html">Sign Up</a>');
 
     const footer = document.createElement("footer");
     footer.className = "footer";
@@ -285,19 +300,21 @@
     $("#menuToggle") && $("#menuToggle").addEventListener("click", function () {
       $("#mobileNav").classList.toggle("open");
     });
-    $("#logoutBtn") && $("#logoutBtn").addEventListener("click", function () {
+    function doLogout() {
       clearLocalAuth();
       localStorage.removeItem(STORAGE.user);
-      if (backendOn()) {
+      if (backendOn() && WunnaxBackend.signOut) {
         WunnaxBackend.signOut().finally(function () {
           toast("Signed out");
-          setTimeout(function () { location.href = p + "index.html"; }, 500);
+          setTimeout(function () { location.href = homeUrl(); }, 400);
         });
         return;
       }
       toast("Signed out");
-      setTimeout(function () { location.href = p + "index.html"; }, 500);
-    });
+      setTimeout(function () { location.href = homeUrl(); }, 400);
+    }
+    $("#logoutBtn") && $("#logoutBtn").addEventListener("click", doLogout);
+    $("#logoutBtnMobile") && $("#logoutBtnMobile").addEventListener("click", doLogout);
 
     // Customer Care + AI Assistant (bottom-right, all pages)
     initCareAssistant(p);
@@ -1764,20 +1781,20 @@
     localStorage.setItem(STORAGE.session, "1");
     if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
     toast(message || ("Signed in as " + (user.name || user.email)));
-    // Always land on home / landing page after any successful login
     try {
       sessionStorage.removeItem("wunnax_auth_next");
     } catch (_) {}
-    const go = function () {
+    // Always go to landing page (absolute URL — reliable on Netlify)
+    const goHome = function () {
       setTimeout(function () {
-        location.href = pathPrefix() + "index.html";
-      }, 500);
+        location.assign(homeUrl());
+      }, 400);
     };
-    if (backendOn() && WunnaxBackend.isAuthed()) {
-      refreshBackendWallet().finally(go);
+    if (backendOn() && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
+      refreshBackendWallet().finally(goHome);
       return;
     }
-    go();
+    goHome();
   }
 
   function showOAuthModal(provider, onDone) {
@@ -2564,18 +2581,21 @@
               );
             });
           }
-          // Already signed in from previous session / redirect side-effect
           if (WunnaxBackend.isAuthed()) {
             return refreshBackendUser().then(function (u) {
               var onAuthPage = /signin|signup/i.test(location.pathname || "");
               if (onAuthPage && u) {
                 googleRedirectDone = true;
                 finishLogin(u, "Welcome back");
+                return;
               }
+              // Stay on page (e.g. home) — just refresh wallet, then shell boots
+              if (u) return refreshBackendWallet();
             });
           }
+          // Guest only: clear stale local flags
           clearLocalAuth();
-          return refreshBackendUser();
+          return null;
         })
         .then(function () {
           if (googleRedirectDone) return;
