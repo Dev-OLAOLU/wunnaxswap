@@ -2499,15 +2499,6 @@
     });
   }
 
-  function initListing() {
-    const form = $("#listingForm");
-    if (!form) return;
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      toast("Listing application received (demo)");
-      form.reset();
-    });
-  }
 
   function initSettings() {
     const box = $("#settingsUser");
