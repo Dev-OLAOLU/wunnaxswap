@@ -1,7 +1,26 @@
-# Static multipage site — no SPA rewrite (each .html is a real page)
+# Static site — skip Netlify post-processing (stops endless "Post processing" on drag-drop)
 [build]
   publish = "."
-  command = "echo static"
+  # Drag-and-drop ignores build; keep a no-op for linked Git deploys
+  command = "true"
+
+# CRITICAL: disables HTML/forms/asset post-processing that often hangs "In progress"
+[build.processing]
+  skip_processing = true
+
+[build.processing.html]
+  pretty_urls = false
+
+[build.processing.css]
+  bundle = false
+  minify = false
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
+[build.processing.images]
+  compress = false
 
 [build.environment]
   NODE_VERSION = "20"
