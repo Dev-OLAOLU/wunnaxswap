@@ -51,7 +51,8 @@
       <button class="btn btn-primary" style="width:100%" type="submit">Create account</button>
     </form>
     <p class="muted" style="margin:1rem 0 0;font-size:.88rem">Already registered? <a href="signin.html">Sign in</a></p>
-    <p class="auth-note">Google uses Firebase Auth. Enable Google in Firebase Console and add your Netlify domain under Authorized domains.</p>
+    <p id="authError" class="auth-error" hidden role="alert"></p>
+    <p class="auth-note">Google uses Firebase Auth. Enable Google + authorize <code>wunnaxswap.netlify.app</code> in Firebase Console.</p>
   </div>
 </div>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

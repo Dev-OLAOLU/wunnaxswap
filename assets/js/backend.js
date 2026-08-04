@@ -436,14 +436,17 @@
   }
 
   function prefersOAuthRedirect() {
+    // Full-page redirect is more reliable than popup on Netlify, mobile, and locked-down browsers
     try {
+      var host = (location && location.hostname) || "";
+      if (host.indexOf("netlify.app") !== -1) return true;
+      if (host.indexOf("localhost") !== -1 || host === "127.0.0.1") return false; // popup ok locally
       var ua = navigator.userAgent || "";
       var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-      // Third-party cookie / COOP issues are common on embedded browsers & some mobile WebViews
       var standalone = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
-      return mobile || standalone;
+      return mobile || standalone || true; // default: redirect everywhere else
     } catch (_) {
-      return false;
+      return true;
     }
   }
 
@@ -471,21 +474,26 @@
 
   async function ensureUserAfterOAuth(user) {
     if (!user || !user.uid) return;
-    var profile = await loadProfile(user.uid);
-    if (!profile) {
-      await userDoc(user.uid).set(
-        {
-          email: user.email || "",
-          displayName: user.displayName || (user.email || "Trader").split("@")[0],
-          balances: cloneBalances(null),
-          kycStatus: "none",
-          createdAt: ts(),
-          updatedAt: ts(),
-        },
-        { merge: true }
-      );
-    } else {
-      await ensureWallet(user.uid);
+    // Never fail Google login if Firestore is slow/rules missing — session still valid
+    try {
+      var profile = await loadProfile(user.uid);
+      if (!profile) {
+        await userDoc(user.uid).set(
+          {
+            email: user.email || "",
+            displayName: user.displayName || (user.email || "Trader").split("@")[0],
+            balances: cloneBalances(null),
+            kycStatus: "none",
+            createdAt: ts(),
+            updatedAt: ts(),
+          },
+          { merge: true }
+        );
+      } else {
+        await ensureWallet(user.uid);
+      }
+    } catch (e) {
+      console.warn("[WunnaxBackend] ensureUserAfterOAuth (non-fatal)", e);
     }
   }
 
@@ -503,15 +511,15 @@
       throw fail("Enable this provider in Firebase Console first", "auth/operation-not-allowed");
     }
     var provider = googleProvider();
-    var forceRedirect = !!opts.forceRedirect || prefersOAuthRedirect();
+    // Netlify: always use redirect (popup is the #1 failure mode)
+    var useRedirect = opts.forcePopup ? false : opts.forceRedirect !== false && prefersOAuthRedirect();
 
     async function viaRedirect() {
-      // Full-page Google → returns to same URL; completeRedirectSignIn finishes it
       await auth.signInWithRedirect(provider);
       return { redirecting: true };
     }
 
-    if (forceRedirect) {
+    if (useRedirect) {
       try {
         return await viaRedirect();
       } catch (e) {
@@ -526,11 +534,11 @@
       return { user: cred.user, via: "popup" };
     } catch (e) {
       var code = (e && e.code) || "";
-      // Popup blocked / unsupported → full-page redirect (most common Netlify failure)
       if (
         code === "auth/popup-blocked" ||
         code === "auth/operation-not-supported-in-this-environment" ||
-        code === "auth/cancelled-popup-request"
+        code === "auth/cancelled-popup-request" ||
+        code === "auth/internal-error"
       ) {
         try {
           return await viaRedirect();
@@ -538,7 +546,6 @@
           throw fail(formatError(e2), e2.code);
         }
       }
-      // User closed popup — don't force redirect
       if (code === "auth/popup-closed-by-user") {
         throw fail(formatError(e), code);
       }

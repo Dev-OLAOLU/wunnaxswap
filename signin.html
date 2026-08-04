@@ -50,7 +50,8 @@
       <button class="btn btn-primary" style="width:100%" type="submit">Continue with email</button>
     </form>
     <p class="muted" style="margin:1rem 0 0;font-size:.88rem">No account? <a href="signup.html">Create account</a></p>
-    <p class="auth-note">Google uses Firebase Auth (enable Google provider + add this site domain in Firebase Console). Apple is not enabled yet.</p>
+    <p id="authError" class="auth-error" hidden role="alert"></p>
+    <p class="auth-note">Google opens a full-page sign-in (Firebase). If it fails, enable Google + add <code>wunnaxswap.netlify.app</code> under Firebase → Authentication → Authorized domains.</p>
   </div>
 </div>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

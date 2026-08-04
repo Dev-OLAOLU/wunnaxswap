@@ -1824,8 +1824,17 @@
     }, 1400);
   }
 
+  function showAuthError(msg) {
+    var el = $("#authError");
+    if (el) {
+      el.hidden = false;
+      el.textContent = msg;
+    }
+    toast(msg);
+  }
+
   function socialLogin(provider) {
-    // Real Google OAuth via Firebase (popup, auto-fallback to full-page redirect)
+    // Real Google OAuth via Firebase (redirect on Netlify — most reliable)
     if (provider === "google" && backendOn() && WunnaxBackend.signInWithOAuth) {
       var next =
         new URLSearchParams(location.search).get("next") ||
@@ -1833,12 +1842,16 @@
       try {
         sessionStorage.setItem("wunnax_auth_next", next);
       } catch (_) {}
-      toast("Opening Google…");
+      var errEl = $("#authError");
+      if (errEl) {
+        errEl.hidden = true;
+        errEl.textContent = "";
+      }
+      toast("Redirecting to Google…");
       WunnaxBackend.signInWithOAuth("google")
         .then(function (res) {
           if (res && res.redirecting) {
-            toast("Redirecting to Google…");
-            return null; // page navigates away
+            return null; // browser leaves for Google
           }
           return refreshBackendUser();
         })
@@ -1851,8 +1864,8 @@
         })
         .catch(function (err) {
           var msg = backendErr(err) || "Google sign-in failed";
-          toast(msg);
-          console.error("[Wunnax] Google sign-in", err);
+          showAuthError(msg);
+          console.error("[Wunnax] Google sign-in", err && err.code, err);
         });
       return;
     }
