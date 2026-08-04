@@ -1833,6 +1833,16 @@
     toast(msg);
   }
 
+  function showStoredAuthError() {
+    try {
+      var msg = sessionStorage.getItem("wunnax_auth_error");
+      if (msg) {
+        sessionStorage.removeItem("wunnax_auth_error");
+        showAuthError(msg);
+      }
+    } catch (_) {}
+  }
+
   function socialLogin(provider) {
     // Real Google OAuth via Firebase (redirect on Netlify — most reliable)
     if (provider === "google" && backendOn() && WunnaxBackend.signInWithOAuth) {
@@ -1841,17 +1851,20 @@
         "markets.html";
       try {
         sessionStorage.setItem("wunnax_auth_next", next);
+        sessionStorage.removeItem("wunnax_auth_error");
       } catch (_) {}
       var errEl = $("#authError");
       if (errEl) {
         errEl.hidden = true;
         errEl.textContent = "";
       }
-      toast("Redirecting to Google…");
+      toast("Opening Google…");
+      // On Netlify: full-page redirect. Local: popup, then redirect if blocked.
       WunnaxBackend.signInWithOAuth("google")
         .then(function (res) {
           if (res && res.redirecting) {
-            return null; // browser leaves for Google
+            toast("Continue in Google…");
+            return null;
           }
           return refreshBackendUser();
         })
@@ -1864,6 +1877,13 @@
         })
         .catch(function (err) {
           var msg = backendErr(err) || "Google sign-in failed";
+          // Last resort: force redirect once more
+          if (err && /popup|internal-error|network/i.test(String(err.code || "") + msg)) {
+            toast("Trying full-page Google sign-in…");
+            return WunnaxBackend.signInWithOAuth("google", { forceRedirect: true }).catch(function (err2) {
+              showAuthError(backendErr(err2) || msg);
+            });
+          }
           showAuthError(msg);
           console.error("[Wunnax] Google sign-in", err && err.code, err);
         });
@@ -2514,6 +2534,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     ensureFavicon();
+    showStoredAuthError();
     if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
       var readyFn =
         typeof WunnaxBackend.waitForReady === "function"
@@ -2522,11 +2543,10 @@
       var googleRedirectDone = false;
       readyFn
         .then(function () {
-          // Finish Google full-page redirect (must run before clearing local session)
           if (typeof WunnaxBackend.completeRedirectSignIn === "function") {
             return WunnaxBackend.completeRedirectSignIn().catch(function (err) {
               console.warn("[Wunnax] redirect result", err);
-              toast(backendErr(err) || "Google sign-in failed after redirect");
+              showAuthError(backendErr(err) || "Google sign-in failed after redirect");
               return null;
             });
           }
@@ -2547,11 +2567,21 @@
               );
             });
           }
-          if (!WunnaxBackend.isAuthed()) clearLocalAuth();
+          // Already signed in from previous session / redirect side-effect
+          if (WunnaxBackend.isAuthed()) {
+            return refreshBackendUser().then(function (u) {
+              var onAuthPage = /signin|signup/i.test(location.pathname || "");
+              if (onAuthPage && u) {
+                googleRedirectDone = true;
+                finishLogin(u, "Welcome back");
+              }
+            });
+          }
+          clearLocalAuth();
           return refreshBackendUser();
         })
         .then(function () {
-          if (googleRedirectDone) return; // finishLogin navigates away
+          if (googleRedirectDone) return;
           if (WunnaxBackend.isAuthed()) return refreshBackendWallet();
         })
         .catch(function (e) { console.warn("[Wunnax] backend init", e); })

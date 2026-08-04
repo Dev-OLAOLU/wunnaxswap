@@ -1,29 +1,39 @@
 /**
- * Wunnaxswap — Firebase config (FREE Spark plan)
+ * Wunnaxswap — Firebase config
  *
- * 1. https://console.firebase.google.com → Create project "wunnaxswap"
- * 2. Build → Authentication → Get started → enable Email/Password
- * 3. Build → Firestore Database → Create database → Start in production mode
- * 4. Project settings (gear) → Your apps → Web app → copy config
- * 5. Paste the values below
- * 6. Firestore → Rules → paste firestore.rules (see docs/FIREBASE_BACKEND.md)
+ * On Netlify we set authDomain to wunnaxswap.netlify.app and proxy /__/auth/*
+ * to Firebase (see netlify.toml + _redirects). That fixes Google login when
+ * browsers block third-party cookies on *.firebaseapp.com.
  *
- * Never put Admin/service account keys in the browser.
+ * Firebase Console checklist:
+ *  - Authentication → Sign-in method → Google → Enabled
+ *  - Authorized domains includes: wunnaxswap.netlify.app, localhost
  */
-window.WUNNAX_FIREBASE = {
-  apiKey: "AIzaSyAloxjP-p76entAz4xK5SXQ96dRtRLRAuY",
-  authDomain: "wunnaxswap.firebaseapp.com",
-  projectId: "wunnaxswap",
-  storageBucket: "wunnaxswap.firebasestorage.app",
-  messagingSenderId: "567140064736",
-  appId: "1:567140064736:web:4df9736782798f7a0b1f85"
-};
+(function () {
+  var host = "";
+  try {
+    host = (typeof location !== "undefined" && location.hostname) || "";
+  } catch (_) {}
 
-/** True when Firebase web config is filled in. */
-window.WUNNAX_FIREBASE_ENABLED = function () {
-  var c = window.WUNNAX_FIREBASE || {};
-  return !!(c.apiKey && c.projectId && String(c.apiKey).length > 10);
-};
+  // Same-origin authDomain only on the live Netlify host (with /__/auth proxy)
+  var authDomain =
+    host === "wunnaxswap.netlify.app"
+      ? "wunnaxswap.netlify.app"
+      : "wunnaxswap.firebaseapp.com";
 
-// Back-compat aliases (old Supabase names) so partial pages still detect config
-window.WUNNAX_SUPABASE_ENABLED = window.WUNNAX_FIREBASE_ENABLED;
+  window.WUNNAX_FIREBASE = {
+    apiKey: "AIzaSyAloxjP-p76entAz4xK5SXQ96dRtRLRAuY",
+    authDomain: authDomain,
+    projectId: "wunnaxswap",
+    storageBucket: "wunnaxswap.firebasestorage.app",
+    messagingSenderId: "567140064736",
+    appId: "1:567140064736:web:4df9736782798f7a0b1f85",
+  };
+
+  window.WUNNAX_FIREBASE_ENABLED = function () {
+    var c = window.WUNNAX_FIREBASE || {};
+    return !!(c.apiKey && c.projectId && String(c.apiKey).length > 10);
+  };
+
+  window.WUNNAX_SUPABASE_ENABLED = window.WUNNAX_FIREBASE_ENABLED;
+})();

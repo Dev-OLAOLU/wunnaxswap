@@ -1,0 +1,3 @@
+# Firebase Auth helper proxy (Google sign-in on custom Netlify domain)
+# https://firebase.google.com/docs/auth/web/redirect-best-practices
+/__/auth/*  https://wunnaxswap.firebaseapp.com/__/auth/:splat  200!

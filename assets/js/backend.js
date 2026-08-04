@@ -459,15 +459,34 @@
     if (!auth) return null;
     try {
       var result = await auth.getRedirectResult();
-      if (!result || !result.user) return null;
-      sessionUser = result.user;
-      await ensureUserAfterOAuth(result.user);
-      return { user: result.user, via: "redirect" };
+      if (result && result.user) {
+        sessionUser = result.user;
+        await ensureUserAfterOAuth(result.user);
+        return { user: result.user, via: "redirect" };
+      }
+      // Cookie/partition edge case: redirect finished but result empty — currentUser may still be set
+      if (auth.currentUser) {
+        sessionUser = auth.currentUser;
+        await ensureUserAfterOAuth(auth.currentUser);
+        return { user: auth.currentUser, via: "currentUser" };
+      }
+      return null;
     } catch (e) {
-      // No pending redirect is normal — only throw real errors
       if (e && (e.code === "auth/no-auth-event" || e.code === "auth/argument-error")) {
+        if (auth.currentUser) {
+          sessionUser = auth.currentUser;
+          await ensureUserAfterOAuth(auth.currentUser);
+          return { user: auth.currentUser, via: "currentUser" };
+        }
         return null;
       }
+      // Persist for UI after bounce back
+      try {
+        sessionStorage.setItem(
+          "wunnax_auth_error",
+          formatError(e) + (e.code ? " [" + e.code + "]" : "")
+        );
+      } catch (_) {}
       throw fail(formatError(e), e.code);
     }
   }
