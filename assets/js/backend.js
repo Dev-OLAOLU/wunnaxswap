@@ -97,6 +97,12 @@
       auth = global.firebase.auth();
       db = global.firebase.firestore();
       try {
+        // Keep session across page loads so login → home still recognizes the user
+        auth.setPersistence(global.firebase.auth.Auth.Persistence.LOCAL);
+      } catch (_) {
+        /* ignore */
+      }
+      try {
         db.settings({ ignoreUndefinedProperties: true });
       } catch (_) {
         /* settings may only be called once */
@@ -593,7 +599,18 @@
   }
 
   function isAuthed() {
-    return !!(auth && auth.currentUser) || !!sessionUser;
+    if ((auth && auth.currentUser) || sessionUser) return true;
+    // During page navigation Firebase may not have rehydrated yet — trust persisted user
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf("firebase:authUser:") === 0) {
+          var raw = localStorage.getItem(k);
+          if (raw && raw.indexOf('"uid"') !== -1) return true;
+        }
+      }
+    } catch (_) {}
+    return false;
   }
 
   /**

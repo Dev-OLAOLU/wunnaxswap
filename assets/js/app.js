@@ -108,9 +108,7 @@
   }
   function setUser(u) { localStorage.setItem(STORAGE.user, JSON.stringify(u)); }
   /**
-   * Real session only.
-   * When Firebase is on: must have Firebase Auth user (localStorage alone is NOT enough).
-   * Offline demo mode (no Firebase): localStorage session flag.
+   * Signed-in = Firebase user (live or still rehydrating from localStorage).
    */
   function isAuthed() {
     if (backendOn()) {
@@ -119,7 +117,6 @@
     return !!localStorage.getItem(STORAGE.session);
   }
 
-  /** Drop fake / stale guest sessions when Firebase is the source of truth */
   function clearLocalAuth() {
     localStorage.removeItem(STORAGE.session);
     backendUserCache = null;
@@ -1775,29 +1772,37 @@
     backendUserCache = user;
     localStorage.setItem(STORAGE.session, "1");
     if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
+
     var okMsg = message || "Login successful";
-    showAuthError(""); // clear errors
+    // Success banner (green)
     var errEl = $("#authError");
     if (errEl) {
       errEl.hidden = false;
       errEl.className = "auth-success";
-      errEl.textContent = okMsg;
+      errEl.setAttribute("role", "status");
+      errEl.textContent = okMsg + " — taking you to home…";
     }
     toast(okMsg);
+
     try {
       sessionStorage.removeItem("wunnax_auth_next");
     } catch (_) {}
-    const goHome = function () {
-      window.location.href = homeUrl();
+
+    // Never block navigation on wallet refresh (was hanging login)
+    var goHome = function () {
+      window.location.replace(homeUrl());
     };
-    // Short pause so user can read "Login successful"
-    setTimeout(function () {
-      if (backendOn() && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
-        Promise.resolve(refreshBackendWallet()).catch(function () {}).then(goHome);
-      } else {
-        goHome();
-      }
-    }, 700);
+    // Best-effort wallet pull, max 1.2s, then always go home
+    var walletWait = Promise.resolve();
+    if (backendOn() && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
+      walletWait = Promise.race([
+        refreshBackendWallet().catch(function () { return null; }),
+        new Promise(function (resolve) { setTimeout(resolve, 1200); }),
+      ]);
+    }
+    walletWait.then(function () {
+      setTimeout(goHome, 550);
+    });
   }
 
   function showOAuthModal(provider, onDone) {
@@ -1858,23 +1863,29 @@
 
   function loginFailMessage(err) {
     var code = (err && err.code) || "";
-    var raw = backendErr(err) || "";
+    var raw = (err && err.message) || backendErr(err) || "";
+    // Normalize Firebase codes (sometimes only on nested error)
+    if (!code && err && err.error && err.error.message) raw = err.error.message;
     if (
       code === "auth/wrong-password" ||
       code === "auth/user-not-found" ||
       code === "auth/invalid-credential" ||
+      code === "auth/invalid-login-credentials" ||
       code === "auth/invalid-email" ||
-      /wrong|invalid|not found|credential/i.test(raw)
+      /INVALID_LOGIN|INVALID_PASSWORD|EMAIL_NOT_FOUND|wrong-password|invalid-credential|user-not-found/i.test(
+        String(code) + " " + raw
+      )
     ) {
-      return "Wrong email or password. Please try again.";
+      return "Wrong email or password.";
     }
-    if (code === "auth/too-many-requests") {
+    if (code === "auth/too-many-requests" || /TOO_MANY/i.test(raw)) {
       return "Too many attempts. Wait a moment and try again.";
     }
-    if (code === "auth/network-request-failed" || /network|internet/i.test(raw)) {
+    if (code === "auth/network-request-failed" || /network|internet|fetch/i.test(raw)) {
       return "Network error — check your connection and try again.";
     }
-    return raw || "Sign in failed. Check your email and password.";
+    if (code === "auth/user-disabled") return "This account has been disabled.";
+    return "Wrong email or password.";
   }
 
   function showStoredAuthError() {
@@ -2046,33 +2057,45 @@
         showAuthError("");
         const email = $("#siEmail").value.trim();
         const pass = $("#siPass").value;
+        var btn = signin.querySelector('button[type="submit"]');
 
         if (!email || !pass) {
           return showAuthError("Enter your email and password.");
         }
-
-        if (backendOn()) {
-          toast("Signing in…");
-          var btn = signin.querySelector('button[type="submit"]');
-          if (btn) btn.disabled = true;
-          WunnaxBackend.signIn(email, pass)
-            .then(function () { return refreshBackendUser(); })
-            .then(function (u) {
-              finishLogin(
-                u || { name: email.split("@")[0], email: email, provider: "email", backend: "firebase" },
-                "Login successful"
-              );
-            })
-            .catch(function (err) {
-              showAuthError(loginFailMessage(err));
-            })
-            .finally(function () {
-              if (btn) btn.disabled = false;
-            });
-          return;
+        if (!backendOn()) {
+          return showAuthError("Login service is not available. Refresh the page and try again.");
         }
 
-        showAuthError("Backend not available — cannot sign in.");
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Signing in…";
+        }
+        toast("Signing in…");
+
+        WunnaxBackend.signIn(email, pass)
+          .then(function () {
+            return refreshBackendUser();
+          })
+          .then(function (u) {
+            // Even if profile fetch fails, Firebase session exists — still succeed
+            finishLogin(
+              u || {
+                name: email.split("@")[0],
+                email: email,
+                provider: "email",
+                backend: "firebase",
+              },
+              "Login successful"
+            );
+          })
+          .catch(function (err) {
+            console.error("[Wunnax] sign-in failed", err);
+            showAuthError(loginFailMessage(err));
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = "Sign in";
+            }
+          });
       });
     }
   }
