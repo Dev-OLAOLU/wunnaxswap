@@ -112,9 +112,49 @@
    */
   function isAuthed() {
     if (backendOn()) {
-      return !!(window.WunnaxBackend && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed());
+      if (window.WunnaxBackend && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
+        return true;
+      }
+      // Right after email login redirect, session flag is set before Firebase rehydrates
+      try {
+        if (localStorage.getItem(STORAGE.session) === "1") return true;
+      } catch (_) {}
+      return false;
     }
     return !!localStorage.getItem(STORAGE.session);
+  }
+
+  /**
+   * Home page: hide Sign In / Sign Up when logged in; show member CTAs instead.
+   */
+  function updateLandingAuthUi() {
+    var authed = isAuthed();
+    document.querySelectorAll("[data-guest-only], .guest-only").forEach(function (el) {
+      if (authed) {
+        el.hidden = true;
+        el.setAttribute("hidden", "");
+        el.style.display = "none";
+      } else {
+        el.hidden = false;
+        el.removeAttribute("hidden");
+        el.style.display = "";
+      }
+    });
+    document.querySelectorAll("[data-member-only], .member-only").forEach(function (el) {
+      if (authed) {
+        el.hidden = false;
+        el.removeAttribute("hidden");
+        el.style.display = "";
+      } else {
+        el.hidden = true;
+        el.setAttribute("hidden", "");
+        el.style.display = "none";
+      }
+    });
+    try {
+      document.documentElement.classList.toggle("wx-authed", authed);
+      document.body.classList.toggle("wx-authed", authed);
+    } catch (_) {}
   }
 
   function clearLocalAuth() {
@@ -2651,6 +2691,7 @@
 
     renderShell();
     initAuth();
+    try { updateLandingAuthUi(); } catch (e) { console.warn(e); }
 
     // Landing content for guests + members
     try { initHomeTickers(); } catch (e) { console.warn(e); }
@@ -2737,6 +2778,19 @@
       bootApp();
     }
 
+    /** After Firebase settles, refresh shell + home guest/member CTAs */
+    function refreshAuthUi() {
+      try {
+        if (!isAuthPage() && document.querySelector(".topbar")) {
+          renderShell();
+          initAuth();
+        }
+        updateLandingAuthUi();
+      } catch (e) {
+        console.warn("[Wunnax] refreshAuthUi", e);
+      }
+    }
+
     setTimeout(safeBoot, 2500); // never hang forever
 
     if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
@@ -2758,7 +2812,10 @@
         .catch(function (e) {
           console.warn("[Wunnax] backend init", e);
         })
-        .finally(safeBoot);
+        .finally(function () {
+          if (!booted) safeBoot();
+          else refreshAuthUi();
+        });
       return;
     }
     safeBoot();

@@ -24,9 +24,11 @@
       <div class="pill">◆ Multi-venue rates · Arbitrage-ready · Transparent fees</div>
       <h1>Buy & sell crypto at <span class="grad">smarter prices</span></h1>
       <p class="lead">Wunnaxswap helps you find cheaper buy quotes, stronger sell venues, and instant swaps — with transparent fees and tools built for everyday traders.</p>
-      <div class="hero-cta">
-        <a class="btn btn-primary" href="signup.html">Sign Up</a>
-        <a class="btn btn-ghost" href="signin.html">Sign In</a>
+      <div class="hero-cta" id="heroCta">
+        <a class="btn btn-primary guest-only" href="signup.html" data-guest-only>Sign Up</a>
+        <a class="btn btn-ghost guest-only" href="signin.html" data-guest-only>Sign In</a>
+        <a class="btn btn-primary member-only" href="trade.html" data-member-only hidden>Start trading</a>
+        <a class="btn btn-soft member-only" href="profile/wallet.html" data-member-only hidden>Wallet</a>
         <a class="btn btn-cyan" href="markets.html">Browse markets</a>
       </div>
       <div class="stats">
@@ -131,9 +133,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <script src="assets/js/firebase-config.js"></script>
-  <script src="assets/js/backend.js"></script>
+  <script src="assets/js/firebase-config.js?v=20260804c"></script>
+  <script src="assets/js/backend.js?v=20260804c"></script>
 <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js"></script>
+  <script src="assets/js/app.js?v=20260804c"></script>
 </body>
 </html>

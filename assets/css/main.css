@@ -186,6 +186,11 @@ h1 .grad {
 }
 .lead { color: var(--muted); font-size: 1.08rem; max-width: 36rem; margin: 0 0 1.4rem; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: .7rem; margin-bottom: 1.4rem; }
+/* Guest auth CTAs on home — hidden when body.wx-authed (logged in) */
+body.wx-authed .guest-only,
+body.wx-authed [data-guest-only] { display: none !important; }
+body:not(.wx-authed) .member-only,
+body:not(.wx-authed) [data-member-only] { display: none !important; }
 .stats {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem;
 }
