@@ -1859,8 +1859,8 @@
         errEl.textContent = "";
       }
       toast("Opening Google…");
-      // On Netlify: full-page redirect. Local: popup, then redirect if blocked.
-      WunnaxBackend.signInWithOAuth("google")
+      // Prefer popup (correct Firebase redirect_uri). Only redirect on mobile / if popup blocked.
+      WunnaxBackend.signInWithOAuth("google", { forcePopup: true })
         .then(function (res) {
           if (res && res.redirecting) {
             toast("Continue in Google…");
@@ -1876,16 +1876,31 @@
           );
         })
         .catch(function (err) {
+          var code = (err && err.code) || "";
           var msg = backendErr(err) || "Google sign-in failed";
-          // Last resort: force redirect once more
-          if (err && /popup|internal-error|network/i.test(String(err.code || "") + msg)) {
-            toast("Trying full-page Google sign-in…");
+          // Popup blocked → try redirect only if user allows (may need Cloud Console URI)
+          if (
+            code === "auth/popup-blocked" ||
+            code === "auth/operation-not-supported-in-this-environment" ||
+            code === "auth/cancelled-popup-request"
+          ) {
+            toast("Popup blocked — trying another method…");
             return WunnaxBackend.signInWithOAuth("google", { forceRedirect: true }).catch(function (err2) {
-              showAuthError(backendErr(err2) || msg);
+              showAuthError(
+                backendErr(err2) ||
+                  msg +
+                    " Allow popups for this site, or use email sign-in."
+              );
             });
           }
+          if (/redirect_uri_mismatch|mismatch/i.test(msg + code)) {
+            showAuthError(
+              "Google redirect URI mismatch. The site was updated to use the correct Firebase handler — redeploy, allow popups, and try again. Also enable Google in Firebase → Authentication → Sign-in method."
+            );
+            return;
+          }
           showAuthError(msg);
-          console.error("[Wunnax] Google sign-in", err && err.code, err);
+          console.error("[Wunnax] Google sign-in", code, err);
         });
       return;
     }

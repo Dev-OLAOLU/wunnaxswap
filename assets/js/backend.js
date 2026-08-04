@@ -135,9 +135,13 @@
       "auth/cancelled-popup-request": "Sign-in was cancelled — try again",
       "auth/operation-not-supported-in-this-environment": "Popup not supported here — using full-page Google sign-in",
       "auth/unauthorized-domain":
-        "This domain is not allowed. In Firebase Console → Authentication → Settings → Authorized domains, add wunnaxswap.netlify.app",
+        "This domain is not allowed. Firebase → Authentication → Settings → Authorized domains → add wunnaxswap.netlify.app",
       "auth/operation-not-allowed":
-        "Google sign-in is off. Firebase Console → Authentication → Sign-in method → enable Google",
+        "Google sign-in is off. Firebase → Authentication → Sign-in method → enable Google",
+      "auth/redirect-uri-mismatch":
+        "Google Cloud OAuth redirect URI mismatch. Add https://wunnaxswap.firebaseapp.com/__/auth/handler (and keep authDomain as firebaseapp.com)",
+      "auth/invalid-continue-uri":
+        "Invalid continue URL — check Firebase authorized domains include this site",
       "auth/user-disabled": "This account has been disabled",
       "auth/account-exists-with-different-credential":
         "An account already exists with this email using a different sign-in method",
@@ -436,17 +440,18 @@
   }
 
   function prefersOAuthRedirect() {
-    // Full-page redirect is more reliable than popup on Netlify, mobile, and locked-down browsers
+    // Prefer POPUP: redirect_uri is always https://PROJECT.firebaseapp.com/__/auth/handler
+    // (pre-registered). Full-page redirect from a custom host often hits redirect_uri_mismatch
+    // unless Google Cloud OAuth client lists that host. Use redirect only on mobile/WebViews.
     try {
-      var host = (location && location.hostname) || "";
-      if (host.indexOf("netlify.app") !== -1) return true;
-      if (host.indexOf("localhost") !== -1 || host === "127.0.0.1") return false; // popup ok locally
       var ua = navigator.userAgent || "";
       var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-      var standalone = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
-      return mobile || standalone || true; // default: redirect everywhere else
+      var standalone =
+        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+        window.navigator.standalone === true;
+      return mobile || standalone;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 
