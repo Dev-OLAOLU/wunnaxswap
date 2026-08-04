@@ -1,7 +1,9 @@
-# Pure static — no build, no post-processing
+# Git-linked deploy: push to main → live on wunnaxswap.netlify.app
+# No drag-and-drop. No long post-processing.
+
 [build]
+  command = "echo static"
   publish = "."
-  command = "exit 0"
 
 [build.processing]
   skip_processing = true
@@ -19,3 +21,12 @@
 
 [build.processing.images]
   compress = false
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
