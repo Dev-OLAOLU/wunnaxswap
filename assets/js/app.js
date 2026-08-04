@@ -2582,7 +2582,6 @@
     initRoadmap();
     initFaq();
     initContact();
-    initListing();
     initFeesTables();
 
     // Product surfaces only when signed in

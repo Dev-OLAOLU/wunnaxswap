@@ -107,17 +107,6 @@ index_body = """
     </div>
     <div class="roadmap" id="roadmapGrid"></div>
   </section>
-
-  <section class="section container">
-    <div class="card" style="padding:1.4rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center">
-      <div>
-        <h2 style="margin:0 0 .35rem">Ready to list your project?</h2>
-        <p class="muted" style="margin:0">Apply for listing and reach Wunnaxswap traders.</p>
-      </div>
-      <a class="btn btn-primary" href="contact.html#listing">Apply for listing</a>
-    </div>
-    <div class="disclaimer">Demo platform: prices and balances are simulated in your browser for product exploration. Not financial advice. Crypto is volatile — never invest more than you can afford to lose.</div>
-  </section>
 </main>
 """
 (ROOT / "index.html").write_text(page("Buy & Sell Crypto Cheaper", index_body), encoding="utf-8")
@@ -357,7 +346,7 @@ contact = """
   <div class="grid-2">
     <form class="card" style="padding:1.2rem" id="contactForm">
       <div class="field"><label>Topic</label>
-        <select id="ctTopic"><option>General support</option><option>Compliance</option><option>Business</option><option>Listing</option><option>Press</option></select>
+        <select id="ctTopic"><option>General support</option><option>Compliance</option><option>Business</option><option>Press</option></select>
       </div>
       <div class="field"><label>Name</label><input required placeholder="Your name" /></div>
       <div class="field"><label>Email</label><input type="email" required placeholder="you@email.com" /></div>
@@ -371,17 +360,7 @@ contact = """
         <p>Legal: legal@wunnaxswap.com</p>
         <p class="muted">Emails are placeholders for this demo site.</p>
       </article>
-      <article class="card feature" id="listing">
-        <h3>Project listing application</h3>
-        <form id="listingForm">
-          <div class="field"><label>Project name</label><input required /></div>
-          <div class="field"><label>Token symbol</label><input required /></div>
-          <div class="field"><label>Website / whitepaper</label><input required /></div>
-          <div class="field"><label>Contact email</label><input type="email" required /></div>
-          <button class="btn btn-cyan" type="submit">Apply for listing</button>
-        </form>
-      </article>
-    </div>
+      </div>
   </div>
 </main>
 """
