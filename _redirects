@@ -1,2 +1,2 @@
-# No Firebase auth proxy by default (avoids redirect_uri_mismatch).
-# authDomain is wunnaxswap.firebaseapp.com — Google already allows that handler.
+# Proxy Firebase Auth helper (required when authDomain = wunnaxswap.netlify.app)
+/__/auth/*  https://wunnaxswap.firebaseapp.com/__/auth/:splat  200!

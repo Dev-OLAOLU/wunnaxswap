@@ -440,18 +440,15 @@
   }
 
   function prefersOAuthRedirect() {
-    // Prefer POPUP: redirect_uri is always https://PROJECT.firebaseapp.com/__/auth/handler
-    // (pre-registered). Full-page redirect from a custom host often hits redirect_uri_mismatch
-    // unless Google Cloud OAuth client lists that host. Use redirect only on mobile/WebViews.
+    // On Netlify with same-origin authDomain + /__/auth proxy, use redirect
+    // (avoids opening blocked *.firebaseapp.com in Safari).
     try {
+      var host = (location && location.hostname) || "";
+      if (host === "wunnaxswap.netlify.app") return true;
       var ua = navigator.userAgent || "";
-      var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-      var standalone =
-        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
-        window.navigator.standalone === true;
-      return mobile || standalone;
+      return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
     } catch (_) {
-      return false;
+      return true;
     }
   }
 

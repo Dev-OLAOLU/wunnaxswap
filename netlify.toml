@@ -1,6 +1,3 @@
-# Git-linked static deploy + Firebase Auth proxy for Google login
-# https://firebase.google.com/docs/auth/web/redirect-best-practices
-
 [build]
   command = "echo static"
   publish = "."
@@ -25,19 +22,16 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Optional Auth proxy (only needed if authDomain is set to this Netlify host).
-# Default config uses authDomain wunnaxswap.firebaseapp.com + popup (no custom URI).
-# Uncomment if you switch authDomain to wunnaxswap.netlify.app AND add the redirect URI in Google Cloud:
-# [[redirects]]
-#   from = "/__/auth/*"
-#   to = "https://wunnaxswap.firebaseapp.com/__/auth/:splat"
-#   status = 200
-#   force = true
+# Proxy Firebase Auth onto this domain so browsers blocked from firebaseapp.com still work
+[[redirects]]
+  from = "/__/auth/*"
+  to = "https://wunnaxswap.firebaseapp.com/__/auth/:splat"
+  status = 200
+  force = true
 
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
-    # Lets Google OAuth popup communicate back to this tab
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"

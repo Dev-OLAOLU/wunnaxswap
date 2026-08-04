@@ -1859,11 +1859,11 @@
         errEl.textContent = "";
       }
       toast("Opening Google…");
-      // Prefer popup (correct Firebase redirect_uri). Only redirect on mobile / if popup blocked.
-      WunnaxBackend.signInWithOAuth("google", { forcePopup: true })
+      // Netlify: redirect via same-origin /__/auth proxy (firebaseapp.com is often blocked)
+      WunnaxBackend.signInWithOAuth("google")
         .then(function (res) {
           if (res && res.redirecting) {
-            toast("Continue in Google…");
+            toast("Continue with Google…");
             return null;
           }
           return refreshBackendUser();
@@ -1878,28 +1878,19 @@
         .catch(function (err) {
           var code = (err && err.code) || "";
           var msg = backendErr(err) || "Google sign-in failed";
-          // Popup blocked → try redirect only if user allows (may need Cloud Console URI)
-          if (
-            code === "auth/popup-blocked" ||
-            code === "auth/operation-not-supported-in-this-environment" ||
-            code === "auth/cancelled-popup-request"
-          ) {
-            toast("Popup blocked — trying another method…");
-            return WunnaxBackend.signInWithOAuth("google", { forceRedirect: true }).catch(function (err2) {
-              showAuthError(
-                backendErr(err2) ||
-                  msg +
-                    " Allow popups for this site, or use email sign-in."
-              );
-            });
-          }
-          if (/redirect_uri_mismatch|mismatch/i.test(msg + code)) {
+          if (/redirect_uri_mismatch|mismatch/i.test(String(msg) + code)) {
             showAuthError(
-              "Google redirect URI mismatch. The site was updated to use the correct Firebase handler — redeploy, allow popups, and try again. Also enable Google in Firebase → Authentication → Sign-in method."
+              "Google Cloud setup needed: add https://wunnaxswap.netlify.app/__/auth/handler under APIs & Services → Credentials → Web client → Authorized redirect URIs. Or use email sign-in below (works now)."
             );
             return;
           }
-          showAuthError(msg);
+          if (/network|internet|failed to fetch|offline/i.test(String(msg) + code)) {
+            showAuthError(
+              "Network blocked Google/Firebase. Use email + password instead — it works without Google."
+            );
+            return;
+          }
+          showAuthError(msg + " — or use email sign-in above.");
           console.error("[Wunnax] Google sign-in", code, err);
         });
       return;
