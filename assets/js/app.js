@@ -1851,20 +1851,18 @@
   function loginFailMessage(err) {
     var code = (err && err.code) || "";
     var raw = (err && err.message) || backendErr(err) || "";
-    // Normalize Firebase codes (sometimes only on nested error)
-    if (!code && err && err.error && err.error.message) raw = err.error.message;
     if (
       code === "auth/wrong-password" ||
       code === "auth/user-not-found" ||
       code === "auth/invalid-credential" ||
       code === "auth/invalid-login-credentials" ||
-      code === "auth/invalid-email" ||
       /INVALID_LOGIN|INVALID_PASSWORD|EMAIL_NOT_FOUND|wrong-password|invalid-credential|user-not-found/i.test(
         String(code) + " " + raw
       )
     ) {
       return "Wrong email or password.";
     }
+    if (code === "auth/invalid-email") return "Enter a valid email address.";
     if (code === "auth/too-many-requests" || /TOO_MANY/i.test(raw)) {
       return "Too many attempts. Wait a moment and try again.";
     }
@@ -1873,6 +1871,25 @@
     }
     if (code === "auth/user-disabled") return "This account has been disabled.";
     return "Wrong email or password.";
+  }
+
+  function signupFailMessage(err) {
+    var code = (err && err.code) || "";
+    var raw = (err && err.message) || backendErr(err) || "";
+    if (code === "auth/email-already-in-use" || /email-already|EMAIL_EXISTS/i.test(String(code) + raw)) {
+      return "That email is already registered. Go to Sign in and use your password.";
+    }
+    if (code === "auth/weak-password" || /weak-password|WEAK/i.test(String(code) + raw)) {
+      return "Password is too weak. Use at least 6 characters.";
+    }
+    if (code === "auth/invalid-email") return "Enter a valid email address.";
+    if (code === "auth/network-request-failed" || /network|internet|fetch/i.test(raw)) {
+      return "Network error — check your connection and try again.";
+    }
+    if (code === "auth/operation-not-allowed") {
+      return "Email sign-up is disabled in Firebase. Enable Email/Password in Authentication.";
+    }
+    return raw || "Could not create account. Try again.";
   }
 
   function showStoredAuthError() {
@@ -2002,69 +2019,81 @@
       signup.addEventListener("submit", function (e) {
         e.preventDefault();
         showAuthError("");
-        const name = $("#suName").value.trim();
-        const email = $("#suEmail").value.trim();
-        const pass = $("#suPass").value;
-        if (!name || !email || pass.length < 6) {
-          return showAuthError("Please fill all fields (password at least 6 characters).");
+        var name = ($("#suName") && $("#suName").value.trim()) || "";
+        var email = ($("#suEmail") && $("#suEmail").value.trim()) || "";
+        var pass = ($("#suPass") && $("#suPass").value) || "";
+        var pass2 = ($("#suPass2") && $("#suPass2").value) || "";
+        var btn = signup.querySelector('button[type="submit"]');
+
+        if (!name || !email || !pass) {
+          return showAuthError("Fill in name, email, and password.");
+        }
+        if (pass.length < 6) {
+          return showAuthError("Password must be at least 6 characters.");
+        }
+        if (pass2 && pass !== pass2) {
+          return showAuthError("Passwords do not match. Type the same password twice.");
+        }
+        if (!backendOn()) {
+          return showAuthError("Service not ready. Refresh and try again.");
         }
 
-        if (backendOn()) {
-          toast("Creating account…");
-          var btn = signup.querySelector('button[type="submit"]');
-          if (btn) btn.disabled = true;
-          WunnaxBackend.signUp(email, pass, name)
-            .then(function (data) {
-              if (!data.session) {
-                showAuthError("Check your email to confirm your account, then sign in.");
-                return;
-              }
-              return refreshBackendUser().then(function (u) {
-                finishLogin(
-                  u || { name: name, email: email, provider: "email", backend: "firebase" },
-                  "Login successful — welcome, " + name.split(" ")[0] + "!"
-                );
-              });
-            })
-            .catch(function (err) {
-              showAuthError(loginFailMessage(err) || "Could not create account.");
-            })
-            .finally(function () {
-              if (btn) btn.disabled = false;
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Creating account…";
+        }
+
+        WunnaxBackend.signUp(email, pass, name)
+          .then(function () {
+            // Account created with the password you chose — go straight home
+            return refreshBackendUser().catch(function () {
+              return null;
             });
-          return;
-        }
-
-        showAuthError("Backend not available — cannot create account.");
+          })
+          .then(function (u) {
+            finishLogin(
+              u || { name: name, email: email, provider: "email", backend: "firebase" },
+              "Login successful"
+            );
+          })
+          .catch(function (err) {
+            console.error("[Wunnax] sign-up failed", err);
+            showAuthError(signupFailMessage(err));
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = "Create account";
+            }
+          });
       });
     }
+
     if (signin) {
       signin.addEventListener("submit", function (e) {
         e.preventDefault();
         showAuthError("");
-        const email = $("#siEmail").value.trim();
-        const pass = $("#siPass").value;
-        var btn = signin.querySelector('button[type="submit"]');
+        var email = ($("#siEmail") && $("#siEmail").value.trim()) || "";
+        var pass = ($("#siPass") && $("#siPass").value) || "";
+        var btn = signin.querySelector('button[type="submit"]') || $("#siSubmit");
 
         if (!email || !pass) {
           return showAuthError("Enter your email and password.");
         }
         if (!backendOn()) {
-          return showAuthError("Login service is not available. Refresh the page and try again.");
+          return showAuthError("Service not ready. Refresh and try again.");
         }
 
         if (btn) {
           btn.disabled = true;
           btn.textContent = "Signing in…";
         }
-        toast("Signing in…");
 
         WunnaxBackend.signIn(email, pass)
           .then(function () {
-            return refreshBackendUser();
+            return refreshBackendUser().catch(function () {
+              return null;
+            });
           })
           .then(function (u) {
-            // Even if profile fetch fails, Firebase session exists — still succeed
             finishLogin(
               u || {
                 name: email.split("@")[0],

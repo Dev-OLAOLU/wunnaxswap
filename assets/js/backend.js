@@ -392,6 +392,7 @@
 
     try {
       var cred = await auth.createUserWithEmailAndPassword(email, password);
+      sessionUser = cred.user;
       if (name) {
         try {
           await cred.user.updateProfile({ displayName: name });
@@ -399,18 +400,22 @@
           /* non-fatal */
         }
       }
-      sessionUser = cred.user;
-      await userDoc(cred.user.uid).set(
-        {
-          email: email,
-          displayName: name,
-          balances: cloneBalances(null),
-          kycStatus: "none",
-          createdAt: ts(),
-          updatedAt: ts(),
-        },
-        { merge: true }
-      );
+      // Wallet profile is best-effort — never fail signup after Auth user is created
+      try {
+        await userDoc(cred.user.uid).set(
+          {
+            email: email,
+            displayName: name,
+            balances: cloneBalances(null),
+            kycStatus: "none",
+            createdAt: ts(),
+            updatedAt: ts(),
+          },
+          { merge: true }
+        );
+      } catch (profileErr) {
+        console.warn("[WunnaxBackend] signup profile (non-fatal)", profileErr);
+      }
       return { user: cred.user, session: true };
     } catch (e) {
       throw fail(formatError(e), e.code);

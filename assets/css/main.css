@@ -495,25 +495,48 @@ body.auth-page {
 }
 .checkline input { margin-top: 0.2rem; flex-shrink: 0; width: 1.1rem; height: 1.1rem; }
 
+@media (max-width: 768px) {
+  .auth-wrap {
+    align-items: flex-start;
+    padding: 1rem 0.85rem 1.5rem;
+  }
+  .auth-box {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 18px;
+    padding: 1.25rem 1rem 1.5rem;
+  }
+}
+
 @media (max-width: 480px) {
   .auth-wrap {
     align-items: stretch;
-    padding: 0.75rem;
+    padding: 0.65rem;
+    min-height: 100dvh;
   }
   .auth-box {
     width: 100%;
     border-radius: 16px;
-    padding: 1.15rem 1rem 1.35rem;
+    padding: 1.1rem 0.9rem 1.35rem;
+    box-shadow: none;
   }
-  .auth-box h1 { font-size: 1.4rem; }
-  .social-stack { gap: 0.55rem; }
-  .btn-social { font-size: 0.88rem; padding: 0.75rem 0.85rem; }
+  .auth-box h1 { font-size: 1.35rem; }
+  .auth-box .field input {
+    min-height: 50px;
+    font-size: 16px;
+  }
+  .auth-box .btn-primary,
+  .auth-box .btn-social {
+    min-height: 50px;
+    font-size: 0.95rem;
+  }
+  .social-stack { gap: 0.55rem; margin-bottom: 0.5rem; }
   .auth-note { font-size: 0.72rem; }
 }
 
 @media (max-width: 360px) {
-  .auth-box h1 { font-size: 1.25rem; }
-  .auth-box .pill { font-size: 0.7rem; }
+  .auth-box h1 { font-size: 1.2rem; }
+  .auth-brand { font-size: 0.95rem; }
 }
 
 /* Social / device sign-in */
