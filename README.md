@@ -13,20 +13,23 @@ Interactive **crypto marketplace product demo** — markets, trade, swap, arbitr
 
 | Link | Notes |
 |------|--------|
-| **http://localhost:5500/** | Local workspace (`python3 -m http.server 5500`) — preferred while developing |
-| **Cloudflare Tunnel** | Clean `*.trycloudflare.com` URL when tunnel is running (no githack interstitial) |
-| **Netlify / Firebase Hosting** | Permanent free domains — configs: `netlify.toml`, `firebase.json` |
-| https://dev-olaolu.github.io/wunnaxswap/ | GitHub Pages — **blocked on many networks** (connection refused to `*.github.io`) |
+| **Vercel (primary)** | Import this repo on [vercel.com/new](https://vercel.com/new) → Framework: Other → Deploy |
+| **http://127.0.0.1:5500/** | Local (`start-server.command` or `python3 -m http.server 5500`) |
+| https://github.com/Dev-OLAOLU/wunnaxswap | Source code |
 
-**Do not use raw.githack for demos** — it shows a third-party interstitial first and is not a clean workspace URL.
+**Auth:** Landing (`index`) + `signin` / `signup` are public. Markets, trade, swap, wallet, tools, etc. require login.
 
-**Auth:** Marketing pages (home, about, fees, legal, sign-in/up) are public. **All product functions** (markets, trade, swap, arbitrage, earn, tools, wallet, deposit, settings) require sign-in.
+### Deploy on Vercel (fast)
 
-### Permanent host (recommended — Netlify Drop, ~30s)
+1. Go to https://vercel.com/new  
+2. Import **Dev-OLAOLU/wunnaxswap**  
+3. Framework Preset: **Other** (static HTML)  
+4. Root directory: `.` · no build command · output: `.`  
+5. Deploy → copy `https://….vercel.app`  
 
-1. Open https://app.netlify.com/drop  
-2. Drag the `Wunnaxswap` folder onto the page  
-3. Copy the `*.netlify.app` URL — clean HTTPS, no interstitial
+Then in Firebase → Authentication → **Authorized domains** → add your `*.vercel.app` host.  
+Google OAuth: Google Cloud → Credentials → Web client → redirect URI  
+`https://YOUR-VERCEL-HOST/__/auth/handler`
 
 ---
 

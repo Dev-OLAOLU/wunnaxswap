@@ -1,13 +1,15 @@
 /**
  * Wunnaxswap — Firebase config
  *
- * On Netlify: authDomain = this site + /__/auth proxy (see netlify.toml).
- * That way Safari never needs to open *.firebaseapp.com directly
- * (many networks block firebaseapp.com → "can't connect to internet").
+ * Hosted on Vercel. authDomain uses the live hostname when on *.vercel.app
+ * (with /__/auth rewrite in vercel.json) so Google login avoids blocked firebaseapp.com.
  *
- * Google Cloud Console MUST list redirect URI (or Google returns 400):
- *   https://wunnaxswap.netlify.app/__/auth/handler
- * See docs/GOOGLE_CLOUD_OAUTH_SETUP.md
+ * Firebase Console → Authentication → Authorized domains: add your Vercel URL host
+ * e.g. wunnaxswap.vercel.app  (and any custom domain)
+ *
+ * Google Cloud OAuth client → Authorized redirect URIs:
+ *   https://YOUR-VERCEL-HOST/__/auth/handler
+ *   https://wunnaxswap.firebaseapp.com/__/auth/handler
  */
 (function () {
   var host = "";
@@ -16,8 +18,9 @@
   } catch (_) {}
 
   var authDomain = "wunnaxswap.firebaseapp.com";
-  if (host === "wunnaxswap.netlify.app") {
-    authDomain = "wunnaxswap.netlify.app";
+  // Same-origin auth on Vercel (proxy via vercel.json rewrites)
+  if (host && (host.indexOf("vercel.app") !== -1 || host === "wunnaxswap.netlify.app")) {
+    authDomain = host;
   }
 
   window.WUNNAX_FIREBASE = {

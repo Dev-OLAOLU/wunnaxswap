@@ -135,7 +135,7 @@
       "auth/cancelled-popup-request": "Sign-in was cancelled — try again",
       "auth/operation-not-supported-in-this-environment": "Popup not supported here — using full-page Google sign-in",
       "auth/unauthorized-domain":
-        "This domain is not allowed. Firebase → Authentication → Settings → Authorized domains → add wunnaxswap.netlify.app",
+        "This domain is not allowed. Firebase → Authentication → Settings → Authorized domains → add your Vercel host (e.g. xxx.vercel.app)",
       "auth/operation-not-allowed":
         "Google sign-in is off. Firebase → Authentication → Sign-in method → enable Google",
       "auth/redirect-uri-mismatch":
@@ -444,7 +444,7 @@
     // (avoids opening blocked *.firebaseapp.com in Safari).
     try {
       var host = (location && location.hostname) || "";
-      if (host === "wunnaxswap.netlify.app") return true;
+      if (host.indexOf("vercel.app") !== -1 || host === "wunnaxswap.netlify.app") return true;
       var ua = navigator.userAgent || "";
       return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
     } catch (_) {
