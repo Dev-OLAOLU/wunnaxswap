@@ -894,8 +894,8 @@
   }
 
   /**
-   * ONLY sign-in / sign-up are public.
-   * Everything else (home, markets, trade, legal, tools…) requires a real login.
+   * Public: landing (home) + sign-in + sign-up only.
+   * Everything else (markets, trade, wallet, tools…) requires login.
    */
   function isPublicPage() {
     const path = (location.pathname || "/").replace(/\\/g, "/").toLowerCase();
@@ -903,7 +903,12 @@
     let name = clean.split("/").pop() || "";
     name = name.replace(/\.html$/, "");
     if (!name || name === "/" || clean === "/") name = "index";
-    return name === "signin" || name === "signup";
+    return name === "index" || name === "signin" || name === "signup";
+  }
+
+  function isAuthPage() {
+    const path = (location.pathname || "").toLowerCase();
+    return /signin|signup/.test(path);
   }
 
   function signInUrl() {
@@ -914,14 +919,18 @@
     }
   }
 
-  /** Hard gate: no guest access to the product */
+  /** Product pages only — guests sent to sign-in */
   function enforcePageAuth() {
     if (isPublicPage()) return true;
     if (backendOn() && !isAuthed()) clearLocalAuth();
     if (isAuthed()) return true;
-    // Immediate redirect — no toast spam, no partial UI
     location.replace(signInUrl());
     return false;
+  }
+
+  function markReady() {
+    document.documentElement.classList.add("wx-ready");
+    document.body.classList.add("wx-ready");
   }
 
   /* Page: markets table */
@@ -1766,19 +1775,29 @@
     backendUserCache = user;
     localStorage.setItem(STORAGE.session, "1");
     if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
-    toast(message || ("Signed in as " + (user && (user.name || user.email)) || "Welcome"));
+    var okMsg = message || "Login successful";
+    showAuthError(""); // clear errors
+    var errEl = $("#authError");
+    if (errEl) {
+      errEl.hidden = false;
+      errEl.className = "auth-success";
+      errEl.textContent = okMsg;
+    }
+    toast(okMsg);
     try {
       sessionStorage.removeItem("wunnax_auth_next");
     } catch (_) {}
-    // Always home / landing after login
     const goHome = function () {
       window.location.href = homeUrl();
     };
-    if (backendOn() && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
-      Promise.resolve(refreshBackendWallet()).catch(function () {}).then(goHome);
-      return;
-    }
-    goHome();
+    // Short pause so user can read "Login successful"
+    setTimeout(function () {
+      if (backendOn() && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
+        Promise.resolve(refreshBackendWallet()).catch(function () {}).then(goHome);
+      } else {
+        goHome();
+      }
+    }, 700);
   }
 
   function showOAuthModal(provider, onDone) {
@@ -1821,11 +1840,41 @@
 
   function showAuthError(msg) {
     var el = $("#authError");
+    if (!msg) {
+      if (el) {
+        el.hidden = true;
+        el.textContent = "";
+        el.className = "auth-error";
+      }
+      return;
+    }
     if (el) {
       el.hidden = false;
+      el.className = "auth-error";
       el.textContent = msg;
     }
     toast(msg);
+  }
+
+  function loginFailMessage(err) {
+    var code = (err && err.code) || "";
+    var raw = backendErr(err) || "";
+    if (
+      code === "auth/wrong-password" ||
+      code === "auth/user-not-found" ||
+      code === "auth/invalid-credential" ||
+      code === "auth/invalid-email" ||
+      /wrong|invalid|not found|credential/i.test(raw)
+    ) {
+      return "Wrong email or password. Please try again.";
+    }
+    if (code === "auth/too-many-requests") {
+      return "Too many attempts. Wait a moment and try again.";
+    }
+    if (code === "auth/network-request-failed" || /network|internet/i.test(raw)) {
+      return "Network error — check your connection and try again.";
+    }
+    return raw || "Sign in failed. Check your email and password.";
   }
 
   function showStoredAuthError() {
@@ -1954,55 +2003,76 @@
     if (signup) {
       signup.addEventListener("submit", function (e) {
         e.preventDefault();
+        showAuthError("");
         const name = $("#suName").value.trim();
         const email = $("#suEmail").value.trim();
         const pass = $("#suPass").value;
-        if (!name || !email || pass.length < 6) return toast("Fill all fields (password 6+ chars)");
+        if (!name || !email || pass.length < 6) {
+          return showAuthError("Please fill all fields (password at least 6 characters).");
+        }
 
         if (backendOn()) {
           toast("Creating account…");
+          var btn = signup.querySelector('button[type="submit"]');
+          if (btn) btn.disabled = true;
           WunnaxBackend.signUp(email, pass, name)
             .then(function (data) {
               if (!data.session) {
-                toast("Check your email to confirm, then sign in");
+                showAuthError("Check your email to confirm your account, then sign in.");
                 return;
               }
               return refreshBackendUser().then(function (u) {
-                finishLogin(u || { name: name, email: email, provider: "email", backend: "firebase" },
-                  "Welcome to Wunnaxswap, " + name.split(" ")[0] + "!");
+                finishLogin(
+                  u || { name: name, email: email, provider: "email", backend: "firebase" },
+                  "Login successful — welcome, " + name.split(" ")[0] + "!"
+                );
               });
             })
             .catch(function (err) {
-              toast(backendErr(err) || "Sign up failed");
+              showAuthError(loginFailMessage(err) || "Could not create account.");
+            })
+            .finally(function () {
+              if (btn) btn.disabled = false;
             });
           return;
         }
 
-        // No Firebase → block account creation (product requires backend auth)
-        toast("Backend not available — cannot create account");
+        showAuthError("Backend not available — cannot create account.");
       });
     }
     if (signin) {
       signin.addEventListener("submit", function (e) {
         e.preventDefault();
+        showAuthError("");
         const email = $("#siEmail").value.trim();
         const pass = $("#siPass").value;
 
+        if (!email || !pass) {
+          return showAuthError("Enter your email and password.");
+        }
+
         if (backendOn()) {
-          if (!email || pass.length < 4) return toast("Enter email and password");
           toast("Signing in…");
+          var btn = signin.querySelector('button[type="submit"]');
+          if (btn) btn.disabled = true;
           WunnaxBackend.signIn(email, pass)
             .then(function () { return refreshBackendUser(); })
             .then(function (u) {
-              finishLogin(u || { name: email.split("@")[0], email: email, provider: "email", backend: "firebase" }, "Signed in");
+              finishLogin(
+                u || { name: email.split("@")[0], email: email, provider: "email", backend: "firebase" },
+                "Login successful"
+              );
             })
             .catch(function (err) {
-              toast(backendErr(err) || "Invalid credentials");
+              showAuthError(loginFailMessage(err));
+            })
+            .finally(function () {
+              if (btn) btn.disabled = false;
             });
           return;
         }
 
-        toast("Backend not available — cannot sign in");
+        showAuthError("Backend not available — cannot sign in.");
       });
     }
   }
@@ -2505,38 +2575,41 @@
 
 
   function bootApp() {
-    // Guests: only signin/signup allowed
-    if (!enforcePageAuth()) return;
+    // Protected routes: guests → sign-in (landing + auth stay public)
+    if (!enforcePageAuth()) {
+      markReady(); // avoid permanent blank while redirecting
+      return;
+    }
 
-    document.documentElement.classList.add("wx-ready");
-    document.body.classList.add("wx-ready");
-
+    markReady();
     renderShell();
-    initAuth(); // always wire forms when on auth pages or when shell present
+    initAuth();
 
-    // Product features only when logged in (auth pages skip most of these)
+    // Landing page works for everyone (guest + logged in)
+    initHomeTickers();
+    initSupportedLists();
+    initRoadmap();
+    initFaq();
+    initContact();
+    initListing();
+    initFeesTables();
+
+    // Product surfaces only when signed in
     if (isAuthed()) {
-      initHomeTickers();
       initMarketsPage();
       initSwap();
       initArbitrage();
       initTrade();
-      initFeesTables();
       initEarn();
-      initFaq();
       initTools();
-      initRoadmap();
-      initContact();
-      initListing();
       initDeposit();
       initSettings();
       renderOrdersTable();
       renderWallet();
-      initSupportedLists();
       setInterval(tickPrices, 2200);
-    } else if (isPublicPage()) {
-      // Auth pages: still allow light home-style bits if any
-      initSupportedLists();
+    } else {
+      // Guests still get live-feeling home prices
+      setInterval(tickPrices, 2200);
     }
   }
 
@@ -2544,15 +2617,20 @@
     ensureFavicon();
     showStoredAuthError();
 
+    // Never leave a blank page: show UI after 2s even if Firebase is slow
+    var safety = setTimeout(function () {
+      markReady();
+    }, 2000);
+
     function afterAuthReady() {
-      // Guest on protected page → enforcePageAuth redirects inside bootApp
+      clearTimeout(safety);
       bootApp();
     }
 
     if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
       var readyFn =
         typeof WunnaxBackend.waitForReady === "function"
-          ? WunnaxBackend.waitForReady(10000)
+          ? WunnaxBackend.waitForReady(8000)
           : WunnaxBackend.init();
       var navigatingAway = false;
 
@@ -2578,16 +2656,15 @@
                   provider: "google",
                   backend: "firebase",
                 },
-                "Signed in with Google"
+                "Login successful"
               );
             });
           }
           if (WunnaxBackend.isAuthed()) {
             return refreshBackendUser().then(function (u) {
-              var onAuthPage = /signin|signup/i.test(location.pathname || "");
-              if (onAuthPage && u) {
+              if (isAuthPage() && u) {
                 navigatingAway = true;
-                finishLogin(u, "Welcome back");
+                finishLogin(u, "Login successful — welcome back");
                 return null;
               }
               if (u) return refreshBackendWallet();
