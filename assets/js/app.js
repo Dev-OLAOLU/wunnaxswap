@@ -2411,6 +2411,19 @@
     }
   }
 
+  
+  function ensureFavicon() {
+    if (document.querySelector('link[rel="icon"][href*="favicon"]')) return;
+    [["/favicon.ico","any"],["/favicon.svg","image/svg+xml"]].forEach(function (pair, i) {
+      var l = document.createElement("link");
+      l.rel = "icon";
+      l.href = pair[0];
+      if (i === 0) l.setAttribute("sizes", "any");
+      else l.type = pair[1];
+      document.head.appendChild(l);
+    });
+  }
+
   function bootApp() {
     // Product pages require login first — do not init trading/wallet UI for guests
     if (!enforcePageAuth()) return;
@@ -2438,6 +2451,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    ensureFavicon();
     if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
       var readyFn =
         typeof WunnaxBackend.waitForReady === "function"
