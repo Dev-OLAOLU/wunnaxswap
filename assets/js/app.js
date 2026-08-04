@@ -1773,6 +1773,7 @@
       backendUserCache = user;
       localStorage.setItem(STORAGE.session, "1");
       if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
+      try { sessionStorage.setItem("wunnax_just_logged_in", "1"); } catch (_) {}
     } catch (e) {
       console.warn("[Wunnax] finishLogin storage", e);
     }
@@ -1781,28 +1782,43 @@
     var errEl = document.getElementById("authError");
     if (errEl) {
       errEl.hidden = false;
+      errEl.removeAttribute("hidden");
       errEl.className = "auth-success";
       errEl.textContent = okMsg + " — opening home…";
+      errEl.style.display = "block";
     }
     try { toast(okMsg); } catch (_) {}
 
-    // Force home — multiple fallbacks (this was failing silently for users)
+    // Visible full-screen success (same as auth-page.js)
+    try {
+      var ov = document.getElementById("wxLoginSuccess");
+      if (ov) ov.remove();
+      ov = document.createElement("div");
+      ov.id = "wxLoginSuccess";
+      ov.style.cssText =
+        "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;" +
+        "background:rgba(7,11,20,.92);padding:1.25rem;text-align:center;";
+      ov.innerHTML =
+        '<div style="max-width:22rem;padding:1.75rem 1.5rem;border-radius:16px;' +
+        "border:1px solid rgba(52,211,153,.5);background:rgba(6,78,59,.55)\">" +
+        '<div style="font-size:2rem;margin-bottom:.65rem">✓</div>' +
+        '<p style="margin:0;font-size:1.15rem;font-weight:700;color:#a7f3d0">' + okMsg + "</p>" +
+        '<p style="margin:.55rem 0 0;font-size:.9rem;color:#6ee7b7">Opening home page…</p></div>';
+      document.body.appendChild(ov);
+    } catch (_) {}
+
+    var url = "/index.html";
+    try { url = homeUrl() || "/index.html"; } catch (_) {}
+
     setTimeout(function () {
-      var url = "/index.html";
-      try {
-        url = homeUrl() || "/index.html";
-      } catch (_) {}
-      try {
-        window.location.replace(url);
-      } catch (_) {
-        window.location.href = url;
-      }
+      try { window.location.replace(url); } catch (_) { window.location.href = url; }
     }, 500);
     setTimeout(function () {
-      if (/signin|signup/i.test(location.pathname || "")) {
-        window.location.href = "/index.html";
-      }
-    }, 1500);
+      if (/signin|signup/i.test(location.pathname || "")) window.location.href = url;
+    }, 1200);
+    setTimeout(function () {
+      if (/signin|signup/i.test(location.pathname || "")) window.location.assign("/index.html");
+    }, 2200);
   }
 
   function showOAuthModal(provider, onDone) {

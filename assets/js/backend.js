@@ -400,19 +400,23 @@
           /* non-fatal */
         }
       }
-      // Wallet profile is best-effort — never fail signup after Auth user is created
+      // Wallet profile is best-effort — never block signup redirect on Firestore
       try {
-        await userDoc(cred.user.uid).set(
-          {
-            email: email,
-            displayName: name,
-            balances: cloneBalances(null),
-            kycStatus: "none",
-            createdAt: ts(),
-            updatedAt: ts(),
-          },
-          { merge: true }
-        );
+        Promise.resolve(
+          userDoc(cred.user.uid).set(
+            {
+              email: email,
+              displayName: name,
+              balances: cloneBalances(null),
+              kycStatus: "none",
+              createdAt: ts(),
+              updatedAt: ts(),
+            },
+            { merge: true }
+          )
+        ).catch(function (profileErr) {
+          console.warn("[WunnaxBackend] signup profile (non-fatal)", profileErr);
+        });
       } catch (profileErr) {
         console.warn("[WunnaxBackend] signup profile (non-fatal)", profileErr);
       }
@@ -435,8 +439,15 @@
     try {
       var cred = await auth.signInWithEmailAndPassword(email, password);
       sessionUser = cred.user;
-      await ensureWallet(cred.user.uid);
-      return { user: cred.user };
+      // Wallet is best-effort — never block login redirect on Firestore
+      try {
+        Promise.resolve(ensureWallet(cred.user.uid)).catch(function (wErr) {
+          console.warn("[WunnaxBackend] signIn wallet (non-fatal)", wErr);
+        });
+      } catch (wErr) {
+        console.warn("[WunnaxBackend] signIn wallet (non-fatal)", wErr);
+      }
+      return { user: cred.user, session: true };
     } catch (e) {
       throw fail(formatError(e), e.code);
     }
