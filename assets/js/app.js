@@ -1768,41 +1768,28 @@
   }
 
   function finishLogin(user, message) {
-    setUser(user);
-    backendUserCache = user;
-    localStorage.setItem(STORAGE.session, "1");
-    if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
+    try {
+      setUser(user);
+      backendUserCache = user;
+      localStorage.setItem(STORAGE.session, "1");
+      if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
+    } catch (e) {
+      console.warn("[Wunnax] finishLogin storage", e);
+    }
 
     var okMsg = message || "Login successful";
-    // Success banner (green)
-    var errEl = $("#authError");
+    var errEl = document.getElementById("authError");
     if (errEl) {
       errEl.hidden = false;
       errEl.className = "auth-success";
-      errEl.setAttribute("role", "status");
-      errEl.textContent = okMsg + " — taking you to home…";
+      errEl.textContent = okMsg + " — opening home…";
     }
-    toast(okMsg);
+    try { toast(okMsg); } catch (_) {}
 
-    try {
-      sessionStorage.removeItem("wunnax_auth_next");
-    } catch (_) {}
-
-    // Never block navigation on wallet refresh (was hanging login)
-    var goHome = function () {
-      window.location.replace(homeUrl());
-    };
-    // Best-effort wallet pull, max 1.2s, then always go home
-    var walletWait = Promise.resolve();
-    if (backendOn() && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
-      walletWait = Promise.race([
-        refreshBackendWallet().catch(function () { return null; }),
-        new Promise(function (resolve) { setTimeout(resolve, 1200); }),
-      ]);
-    }
-    walletWait.then(function () {
-      setTimeout(goHome, 550);
-    });
+    // Immediate hard navigation to home — do not wait on anything
+    setTimeout(function () {
+      window.location.href = homeUrl();
+    }, 500);
   }
 
   function showOAuthModal(provider, onDone) {
@@ -2589,116 +2576,134 @@
 
 
   function bootApp() {
-    // Protected routes: guests → sign-in (landing + auth stay public)
+    // Product pages only when logged in; landing + auth always open
     if (!enforcePageAuth()) {
-      markReady(); // avoid permanent blank while redirecting
+      markReady();
       return;
     }
 
     markReady();
+
+    // Login/signup: clean form only — no full site shell (was making login feel broken)
+    if (isAuthPage()) {
+      initAuth();
+      showStoredAuthError();
+      return;
+    }
+
     renderShell();
     initAuth();
 
-    // Landing page works for everyone (guest + logged in)
-    initHomeTickers();
-    initSupportedLists();
-    initRoadmap();
-    initFaq();
-    initContact();
-    initFeesTables();
+    // Landing content for guests + members
+    try { initHomeTickers(); } catch (e) { console.warn(e); }
+    try { initSupportedLists(); } catch (e) { console.warn(e); }
+    try { initRoadmap(); } catch (e) { console.warn(e); }
+    try { initFaq(); } catch (e) { console.warn(e); }
+    try { initContact(); } catch (e) { console.warn(e); }
+    try { initFeesTables(); } catch (e) { console.warn(e); }
 
-    // Product surfaces only when signed in
     if (isAuthed()) {
-      initMarketsPage();
-      initSwap();
-      initArbitrage();
-      initTrade();
-      initEarn();
-      initTools();
-      initDeposit();
-      initSettings();
-      renderOrdersTable();
-      renderWallet();
-      setInterval(tickPrices, 2200);
-    } else {
-      // Guests still get live-feeling home prices
-      setInterval(tickPrices, 2200);
+      try { initMarketsPage(); } catch (e) { console.warn(e); }
+      try { initSwap(); } catch (e) { console.warn(e); }
+      try { initArbitrage(); } catch (e) { console.warn(e); }
+      try { initTrade(); } catch (e) { console.warn(e); }
+      try { initEarn(); } catch (e) { console.warn(e); }
+      try { initTools(); } catch (e) { console.warn(e); }
+      try { initDeposit(); } catch (e) { console.warn(e); }
+      try { initSettings(); } catch (e) { console.warn(e); }
+      try { renderOrdersTable(); } catch (e) { console.warn(e); }
+      try { renderWallet(); } catch (e) { console.warn(e); }
     }
+
+    try {
+      setInterval(tickPrices, 2200);
+    } catch (e) { console.warn(e); }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    ensureFavicon();
-    showStoredAuthError();
+    // 1) Paint the page immediately — never wait on Firebase to show UI
+    try { ensureFavicon(); } catch (e) {}
+    markReady();
 
-    // Never leave a blank page: show UI after 2s even if Firebase is slow
-    var safety = setTimeout(function () {
-      markReady();
-    }, 2000);
-
-    function afterAuthReady() {
-      clearTimeout(safety);
+    // 2) Auth pages: wire login form right away
+    if (isAuthPage()) {
       bootApp();
-    }
-
-    if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
-      var readyFn =
-        typeof WunnaxBackend.waitForReady === "function"
-          ? WunnaxBackend.waitForReady(8000)
-          : WunnaxBackend.init();
-      var navigatingAway = false;
-
-      readyFn
-        .then(function () {
-          if (typeof WunnaxBackend.completeRedirectSignIn === "function") {
-            return WunnaxBackend.completeRedirectSignIn().catch(function (err) {
-              console.warn("[Wunnax] redirect result", err);
-              showAuthError(backendErr(err) || "Google sign-in failed after redirect");
-              return null;
-            });
-          }
-          return null;
-        })
-        .then(function (redirectRes) {
-          if (redirectRes && redirectRes.user) {
-            navigatingAway = true;
-            return refreshBackendUser().then(function (u) {
-              finishLogin(
-                u || {
-                  name: redirectRes.user.displayName || "Trader",
-                  email: redirectRes.user.email || "",
-                  provider: "google",
-                  backend: "firebase",
-                },
-                "Login successful"
-              );
-            });
-          }
-          if (WunnaxBackend.isAuthed()) {
-            return refreshBackendUser().then(function (u) {
-              if (isAuthPage()) {
-                navigatingAway = true;
+      // Still init Firebase in background for the form to use
+      if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
+        var readyFn =
+          typeof WunnaxBackend.waitForReady === "function"
+            ? WunnaxBackend.waitForReady(8000)
+            : WunnaxBackend.init();
+        readyFn
+          .then(function () {
+            if (typeof WunnaxBackend.completeRedirectSignIn === "function") {
+              return WunnaxBackend.completeRedirectSignIn();
+            }
+            return null;
+          })
+          .then(function (redirectRes) {
+            if (redirectRes && redirectRes.user) {
+              return refreshBackendUser().then(function (u) {
+                finishLogin(
+                  u || {
+                    name: redirectRes.user.displayName || "Trader",
+                    email: redirectRes.user.email || "",
+                    provider: "google",
+                    backend: "firebase",
+                  },
+                  "Login successful"
+                );
+              });
+            }
+            if (WunnaxBackend.isAuthed()) {
+              return refreshBackendUser().then(function (u) {
                 finishLogin(
                   u || { name: "Trader", email: "", provider: "email", backend: "firebase" },
                   "Login successful"
                 );
-                return null;
-              }
-              if (u) return refreshBackendWallet();
-              return null;
-            });
+              });
+            }
+          })
+          .catch(function (err) {
+            console.warn("[Wunnax] auth page firebase", err);
+          });
+      }
+      return;
+    }
+
+    // 3) Other pages: init Firebase then boot (or boot anyway after timeout)
+    var booted = false;
+    function safeBoot() {
+      if (booted) return;
+      booted = true;
+      bootApp();
+    }
+
+    setTimeout(safeBoot, 2500); // never hang forever
+
+    if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
+      var readyFn2 =
+        typeof WunnaxBackend.waitForReady === "function"
+          ? WunnaxBackend.waitForReady(6000)
+          : WunnaxBackend.init();
+      readyFn2
+        .then(function () {
+          if (typeof WunnaxBackend.completeRedirectSignIn === "function") {
+            return WunnaxBackend.completeRedirectSignIn().catch(function () { return null; });
           }
-          if (!WunnaxBackend.isAuthed()) clearLocalAuth();
           return null;
+        })
+        .then(function () {
+          if (!WunnaxBackend.isAuthed()) clearLocalAuth();
+          else return refreshBackendUser().then(function () { return refreshBackendWallet(); });
         })
         .catch(function (e) {
           console.warn("[Wunnax] backend init", e);
         })
-        .finally(function () {
-          if (!navigatingAway) afterAuthReady();
-        });
+        .finally(safeBoot);
       return;
     }
-    afterAuthReady();
+    safeBoot();
   });
 
   // expose for debugging

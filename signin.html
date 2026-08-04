@@ -15,40 +15,39 @@
   <div class="card auth-box">
     <a class="brand auth-brand" href="index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
     <h1>Sign in</h1>
-    <p class="muted">Use your email and password. After a successful login you go to the home page.</p>
+    <p class="muted">Email and password. Correct login → home page. Wrong password → error message.</p>
 
-    <form id="signinForm" novalidate>
+    <form id="signinForm">
       <div class="field">
         <label for="siEmail">Email</label>
-        <input id="siEmail" name="email" type="email" required placeholder="you@email.com" autocomplete="username" inputmode="email" />
+        <input id="siEmail" type="email" required placeholder="you@email.com" autocomplete="username" />
       </div>
       <div class="field">
         <label for="siPass">Password</label>
-        <input id="siPass" name="password" type="password" required placeholder="Your password" autocomplete="current-password" />
+        <input id="siPass" type="password" required placeholder="Password" autocomplete="current-password" />
       </div>
-      <p id="authError" class="auth-error" hidden role="alert"></p>
+      <p id="authError" class="auth-error" hidden></p>
       <button class="btn btn-primary" style="width:100%" type="submit" id="siSubmit">Sign in</button>
     </form>
 
     <div class="auth-divider">or</div>
 
-    <button type="button" class="btn btn-social google" id="btnGoogle" data-provider="google" style="width:100%">
-      <span class="ico" aria-hidden="true">G</span>
+    <button type="button" class="btn btn-social google" data-provider="google" id="btnGoogle" style="width:100%">
       Continue with Google
     </button>
 
     <p class="muted" style="margin:1.15rem 0 0;text-align:center;font-size:.9rem">
-      New here? <a href="signup.html"><strong>Create an account</strong></a>
+      No account? <a href="signup.html"><strong>Sign up</strong></a>
     </p>
   </div>
 </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <script src="assets/js/firebase-config.js"></script>
-  <script src="assets/js/backend.js"></script>
-  <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/js/firebase-config.js"></script>
+<script src="assets/js/backend.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
 </body>
 </html>
