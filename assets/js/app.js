@@ -2413,21 +2413,24 @@
 
   
   function ensureFavicon() {
-    var href = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%0A%20%20%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%23070b14%22/%3E%0A%20%20%3Crect%20x%3D%221.5%22%20y%3D%221.5%22%20width%3D%2229%22%20height%3D%2229%22%20rx%3D%226%22%20fill%3D%22none%22%20stroke%3D%22%2322d3ee%22%20stroke-width%3D%221.5%22/%3E%0A%20%20%3Cpath%20fill%3D%22%23fff%22%20d%3D%22M6%208h3.2l2.1%2010.5L14.4%208h3.2l3.1%2010.5L22.8%208H26l-4%2016h-3.3l-2.9-10.2L12.9%2024H9.6L6%208z%22/%3E%0A%3C/svg%3E";
-    document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"]').forEach(function (el) {
+    // Same location as OUTLIER: site-root favicon.svg / favicon.png
+    var base = pathPrefix();
+    var svg = base + "favicon.svg";
+    var png = base + "favicon.png";
+    document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"],link[rel="apple-touch-icon"]').forEach(function (el) {
       el.parentNode.removeChild(el);
     });
-    var link = document.createElement("link");
-    link.rel = "icon";
-    link.type = "image/svg+xml";
-    link.href = href;
-    document.head.appendChild(link);
-    var link2 = document.createElement("link");
-    link2.rel = "icon";
-    link2.href = "/favicon.ico";
-    link2.setAttribute("sizes", "any");
-    document.head.appendChild(link2);
+    [
+      { rel: "icon", href: svg, type: "image/svg+xml" },
+      { rel: "icon", href: png, type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: png },
+    ].forEach(function (spec) {
+      var l = document.createElement("link");
+      Object.keys(spec).forEach(function (k) { l.setAttribute(k, spec[k]); });
+      document.head.appendChild(l);
+    });
   }
+
 
 
   function bootApp() {
