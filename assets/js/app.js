@@ -2675,16 +2675,19 @@
           }
           if (WunnaxBackend.isAuthed()) {
             return refreshBackendUser().then(function (u) {
-              if (isAuthPage() && u) {
+              if (isAuthPage()) {
                 navigatingAway = true;
-                finishLogin(u, "Login successful — welcome back");
+                finishLogin(
+                  u || { name: "Trader", email: "", provider: "email", backend: "firebase" },
+                  "Login successful"
+                );
                 return null;
               }
               if (u) return refreshBackendWallet();
               return null;
             });
           }
-          clearLocalAuth();
+          if (!WunnaxBackend.isAuthed()) clearLocalAuth();
           return null;
         })
         .catch(function (e) {
