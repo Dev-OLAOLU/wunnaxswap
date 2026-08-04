@@ -433,6 +433,10 @@ table.data tr:hover td { background: rgba(34, 211, 238, 0.06); }
 }
 .chart-box canvas { width: 100%; height: 100%; display: block; }
 
+/* Hide unfinished shell flash until app boots */
+html:not(.wx-ready) body > main { opacity: 0.35; }
+html.wx-ready body > main { opacity: 1; transition: opacity 0.2s ease; }
+
 /* Auth — full-viewport, mobile-first responsive */
 .auth-wrap {
   min-height: 100vh;

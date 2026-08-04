@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Sign Up | Wunnaxswap</title>
   <meta name="description" content="Create a Wunnaxswap account" />
   <meta name="theme-color" content="#070b14" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="favicon.png" type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href="favicon.png" />
+  <style id="wx-gate">html:not(.wx-ready) body{background:#070b14}</style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -18,19 +19,31 @@
 
 <div class="auth-wrap">
   <div class="card auth-box">
-    <div class="pill">Start your crypto journey</div>
-    <h1>Create your account</h1>
-    <p class="muted">Email sign-up is the reliable path. Google is optional.</p>
+    <div class="pill">Wunnaxswap</div>
+    <h1>Create account</h1>
+    <p class="muted">Register with email to unlock markets, trade, swap, wallet, and tools.</p>
 
     <form id="signupForm">
-      <div class="field"><label>Full name</label><input id="suName" required placeholder="Your name" autocomplete="name" /></div>
-      <div class="field"><label>Email</label><input id="suEmail" type="email" required placeholder="you@email.com" autocomplete="email" /></div>
-      <div class="field"><label>Password</label><input id="suPass" type="password" required minlength="6" placeholder="Min 6 characters" autocomplete="new-password" /></div>
-      <div class="checkline"><input type="checkbox" required /> <span>I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a></span></div>
-      <button class="btn btn-primary" style="width:100%" type="submit">Create account with email</button>
+      <div class="field">
+        <label for="suName">Full name</label>
+        <input id="suName" required placeholder="Your name" autocomplete="name" />
+      </div>
+      <div class="field">
+        <label for="suEmail">Email</label>
+        <input id="suEmail" type="email" required placeholder="you@email.com" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label for="suPass">Password</label>
+        <input id="suPass" type="password" required minlength="6" placeholder="Min 6 characters" autocomplete="new-password" />
+      </div>
+      <div class="checkline">
+        <input type="checkbox" required id="suTerms" />
+        <span>I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a></span>
+      </div>
+      <button class="btn btn-primary" style="width:100%" type="submit">Create account</button>
     </form>
 
-    <div class="auth-divider">optional</div>
+    <div class="auth-divider">or</div>
 
     <div class="social-stack">
       <button type="button" class="btn btn-social google" id="btnGoogle" data-provider="google">
@@ -41,11 +54,14 @@
       </button>
     </div>
 
-    <p class="muted" style="margin:1rem 0 0;font-size:.88rem">Already registered? <a href="signin.html">Sign in</a></p>
+    <p class="muted" style="margin:1.1rem 0 0;font-size:.9rem;text-align:center">
+      Already have an account? <a href="signin.html"><strong>Sign in</strong></a>
+    </p>
     <p id="authError" class="auth-error" hidden role="alert"></p>
-    <p class="auth-note">Email is recommended. Google is optional and needs Google Cloud redirect setup if you see errors.</p>
+    <p class="auth-note">After sign-up you go to the home page. Use email if Google fails on your network.</p>
   </div>
 </div>
+
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>

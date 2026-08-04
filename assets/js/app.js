@@ -894,47 +894,33 @@
   }
 
   /**
-   * Public pages only (marketing + legal + auth).
-   * All product functions (trade, swap, markets, earn, tools, wallet…) need login.
-   * Handles both "markets.html" and clean URLs like "/markets".
+   * ONLY sign-in / sign-up are public.
+   * Everything else (home, markets, trade, legal, tools…) requires a real login.
    */
   function isPublicPage() {
     const path = (location.pathname || "/").replace(/\\/g, "/").toLowerCase();
     const clean = path.replace(/\/+$/, "") || "/";
-    // Nested product areas are never public
-    if (clean.indexOf("/profile") !== -1 || clean.indexOf("/tools") !== -1) return false;
-
     let name = clean.split("/").pop() || "";
     name = name.replace(/\.html$/, "");
     if (!name || name === "/" || clean === "/") name = "index";
-
-    const publicNames = {
-      index: true,
-      "": true,
-      signin: true,
-      signup: true,
-      about: true,
-      contact: true,
-      faq: true,
-      fees: true,
-      terms: true,
-      privacy: true,
-      compliance: true,
-    };
-    return !!publicNames[name];
+    return name === "signin" || name === "signup";
   }
 
-  /** Hard gate: redirect guests away from product pages before UI boots features */
+  function signInUrl() {
+    try {
+      return location.origin + "/signin.html";
+    } catch (e) {
+      return pathPrefix() + "signin.html";
+    }
+  }
+
+  /** Hard gate: no guest access to the product */
   function enforcePageAuth() {
     if (isPublicPage()) return true;
-    // Firebase on but not signed in → wipe stale local "session" flag
-    if (backendOn() && !isAuthed()) {
-      clearLocalAuth();
-    }
+    if (backendOn() && !isAuthed()) clearLocalAuth();
     if (isAuthed()) return true;
-    const next = location.pathname + location.search;
-    toast("Sign in to use Wunnaxswap");
-    location.replace(pathPrefix() + "signin.html?next=" + encodeURIComponent(next || "index.html"));
+    // Immediate redirect — no toast spam, no partial UI
+    location.replace(signInUrl());
     return false;
   }
 
@@ -1780,18 +1766,16 @@
     backendUserCache = user;
     localStorage.setItem(STORAGE.session, "1");
     if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
-    toast(message || ("Signed in as " + (user.name || user.email)));
+    toast(message || ("Signed in as " + (user && (user.name || user.email)) || "Welcome"));
     try {
       sessionStorage.removeItem("wunnax_auth_next");
     } catch (_) {}
-    // Always go to landing page (absolute URL — reliable on Netlify)
+    // Always home / landing after login
     const goHome = function () {
-      setTimeout(function () {
-        location.assign(homeUrl());
-      }, 400);
+      window.location.href = homeUrl();
     };
     if (backendOn() && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) {
-      refreshBackendWallet().finally(goHome);
+      Promise.resolve(refreshBackendWallet()).catch(function () {}).then(goHome);
       return;
     }
     goHome();
@@ -2521,40 +2505,57 @@
 
 
   function bootApp() {
-    // Product pages require login first — do not init trading/wallet UI for guests
+    // Guests: only signin/signup allowed
     if (!enforcePageAuth()) return;
 
+    document.documentElement.classList.add("wx-ready");
+    document.body.classList.add("wx-ready");
+
     renderShell();
-    initHomeTickers();
-    initMarketsPage();
-    initSwap();
-    initArbitrage();
-    initTrade();
-    initAuth();
-    initFeesTables();
-    initEarn();
-    initFaq();
-    initTools();
-    initRoadmap();
-    initContact();
-    initListing();
-    initDeposit();
-    initSettings();
-    renderOrdersTable();
-    renderWallet();
-    initSupportedLists();
-    setInterval(tickPrices, 2200);
+    initAuth(); // always wire forms when on auth pages or when shell present
+
+    // Product features only when logged in (auth pages skip most of these)
+    if (isAuthed()) {
+      initHomeTickers();
+      initMarketsPage();
+      initSwap();
+      initArbitrage();
+      initTrade();
+      initFeesTables();
+      initEarn();
+      initFaq();
+      initTools();
+      initRoadmap();
+      initContact();
+      initListing();
+      initDeposit();
+      initSettings();
+      renderOrdersTable();
+      renderWallet();
+      initSupportedLists();
+      setInterval(tickPrices, 2200);
+    } else if (isPublicPage()) {
+      // Auth pages: still allow light home-style bits if any
+      initSupportedLists();
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     ensureFavicon();
     showStoredAuthError();
+
+    function afterAuthReady() {
+      // Guest on protected page → enforcePageAuth redirects inside bootApp
+      bootApp();
+    }
+
     if (backendOn() && window.WunnaxBackend && WunnaxBackend.init) {
       var readyFn =
         typeof WunnaxBackend.waitForReady === "function"
-          ? WunnaxBackend.waitForReady(12000)
+          ? WunnaxBackend.waitForReady(10000)
           : WunnaxBackend.init();
-      var googleRedirectDone = false;
+      var navigatingAway = false;
+
       readyFn
         .then(function () {
           if (typeof WunnaxBackend.completeRedirectSignIn === "function") {
@@ -2568,7 +2569,7 @@
         })
         .then(function (redirectRes) {
           if (redirectRes && redirectRes.user) {
-            googleRedirectDone = true;
+            navigatingAway = true;
             return refreshBackendUser().then(function (u) {
               finishLogin(
                 u || {
@@ -2585,29 +2586,26 @@
             return refreshBackendUser().then(function (u) {
               var onAuthPage = /signin|signup/i.test(location.pathname || "");
               if (onAuthPage && u) {
-                googleRedirectDone = true;
+                navigatingAway = true;
                 finishLogin(u, "Welcome back");
-                return;
+                return null;
               }
-              // Stay on page (e.g. home) — just refresh wallet, then shell boots
               if (u) return refreshBackendWallet();
+              return null;
             });
           }
-          // Guest only: clear stale local flags
           clearLocalAuth();
           return null;
         })
-        .then(function () {
-          if (googleRedirectDone) return;
-          if (WunnaxBackend.isAuthed()) return refreshBackendWallet();
+        .catch(function (e) {
+          console.warn("[Wunnax] backend init", e);
         })
-        .catch(function (e) { console.warn("[Wunnax] backend init", e); })
         .finally(function () {
-          if (!googleRedirectDone) bootApp();
+          if (!navigatingAway) afterAuthReady();
         });
       return;
     }
-    bootApp();
+    afterAuthReady();
   });
 
   // expose for debugging
