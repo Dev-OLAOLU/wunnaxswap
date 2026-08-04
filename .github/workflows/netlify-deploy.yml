@@ -1,0 +1,41 @@
+# Auto-deploy static site to Netlify on every push to main.
+# One-time setup (fixes endless drag-and-drop "Post processing"):
+#   1. Netlify → User settings → Applications → New access token
+#   2. Netlify → Site configuration → Site details → copy Site ID
+#   3. GitHub repo → Settings → Secrets → Actions → add:
+#        NETLIFY_AUTH_TOKEN
+#        NETLIFY_SITE_ID
+#   4. Push to main — deploy runs here (no drag-drop, no stuck post-processing)
+
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy production
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "Missing secrets NETLIFY_AUTH_TOKEN / NETLIFY_SITE_ID — skip deploy."
+            echo "Add them under GitHub → Settings → Secrets and variables → Actions"
+            exit 0
+          fi
+          # Deploy only public web files; skip post-processing hang sources
+          netlify deploy --prod --dir=. \
+            --filter='!docs/**' \
+            --filter='!.git/**' \
+            --message "github-actions ${GITHUB_SHA}"
+        continue-on-error: false

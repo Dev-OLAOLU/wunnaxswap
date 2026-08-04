@@ -1,10 +1,8 @@
-# Static site — skip Netlify post-processing (stops endless "Post processing" on drag-drop)
+# Pure static — no build, no post-processing
 [build]
   publish = "."
-  # Drag-and-drop ignores build; keep a no-op for linked Git deploys
-  command = "true"
+  command = "exit 0"
 
-# CRITICAL: disables HTML/forms/asset post-processing that often hangs "In progress"
 [build.processing]
   skip_processing = true
 
@@ -21,12 +19,3 @@
 
 [build.processing.images]
   compress = false
-
-[build.environment]
-  NODE_VERSION = "20"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
-    X-Content-Type-Options = "nosniff"
