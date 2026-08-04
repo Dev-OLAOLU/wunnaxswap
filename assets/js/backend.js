@@ -130,10 +130,18 @@
       "auth/invalid-credential": "Incorrect email or password",
       "auth/too-many-requests": "Too many attempts — try again later",
       "auth/network-request-failed": "Network error — check your connection",
-      "auth/popup-closed-by-user": "Sign-in popup was closed",
-      "auth/popup-blocked": "Popup blocked — allow popups for this site",
-      "auth/operation-not-allowed": "This sign-in method is disabled in Firebase Console",
+      "auth/popup-closed-by-user": "Sign-in popup was closed — try again",
+      "auth/popup-blocked": "Popup blocked — allow popups or use redirect sign-in",
+      "auth/cancelled-popup-request": "Sign-in was cancelled — try again",
+      "auth/operation-not-supported-in-this-environment": "Popup not supported here — using full-page Google sign-in",
+      "auth/unauthorized-domain":
+        "This domain is not allowed. In Firebase Console → Authentication → Settings → Authorized domains, add wunnaxswap.netlify.app",
+      "auth/operation-not-allowed":
+        "Google sign-in is off. Firebase Console → Authentication → Sign-in method → enable Google",
       "auth/user-disabled": "This account has been disabled",
+      "auth/account-exists-with-different-credential":
+        "An account already exists with this email using a different sign-in method",
+      "auth/network-request-failed": "Network error — check your connection",
       "permission-denied": "Permission denied — check Firestore rules",
       "unavailable": "Service temporarily unavailable",
     };
@@ -420,41 +428,122 @@
     }
   }
 
+  function googleProvider() {
+    var provider = new global.firebase.auth.GoogleAuthProvider();
+    provider.addScope("email");
+    provider.addScope("profile");
+    provider.setCustomParameters({ prompt: "select_account" });
+    return provider;
+  }
+
+  function prefersOAuthRedirect() {
+    try {
+      var ua = navigator.userAgent || "";
+      var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+      // Third-party cookie / COOP issues are common on embedded browsers & some mobile WebViews
+      var standalone = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
+      return mobile || standalone;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /**
-   * @param {"google"} providerName
+   * After Google redirect returns to this origin, finish wallet + return user.
+   * @returns {Promise<{user: firebase.User}|null>}
    */
-  async function signInWithOAuth(providerName) {
+  async function completeRedirectSignIn() {
+    ensureApp();
+    if (!auth) return null;
+    try {
+      var result = await auth.getRedirectResult();
+      if (!result || !result.user) return null;
+      sessionUser = result.user;
+      await ensureUserAfterOAuth(result.user);
+      return { user: result.user, via: "redirect" };
+    } catch (e) {
+      // No pending redirect is normal — only throw real errors
+      if (e && (e.code === "auth/no-auth-event" || e.code === "auth/argument-error")) {
+        return null;
+      }
+      throw fail(formatError(e), e.code);
+    }
+  }
+
+  async function ensureUserAfterOAuth(user) {
+    if (!user || !user.uid) return;
+    var profile = await loadProfile(user.uid);
+    if (!profile) {
+      await userDoc(user.uid).set(
+        {
+          email: user.email || "",
+          displayName: user.displayName || (user.email || "Trader").split("@")[0],
+          balances: cloneBalances(null),
+          kycStatus: "none",
+          createdAt: ts(),
+          updatedAt: ts(),
+        },
+        { merge: true }
+      );
+    } else {
+      await ensureWallet(user.uid);
+    }
+  }
+
+  /**
+   * Google OAuth via popup, with automatic redirect fallback (Netlify / mobile safe).
+   * @param {"google"} providerName
+   * @param {{forceRedirect?: boolean}} [opts]
+   * @returns {Promise<{user?: firebase.User, redirecting?: boolean}>}
+   */
+  async function signInWithOAuth(providerName, opts) {
     ensureApp();
     if (!auth) throw fail("Firebase not configured");
-    var provider;
-    if (providerName === "google") {
-      provider = new global.firebase.auth.GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-    } else {
+    opts = opts || {};
+    if (providerName !== "google") {
       throw fail("Enable this provider in Firebase Console first", "auth/operation-not-allowed");
     }
+    var provider = googleProvider();
+    var forceRedirect = !!opts.forceRedirect || prefersOAuthRedirect();
+
+    async function viaRedirect() {
+      // Full-page Google → returns to same URL; completeRedirectSignIn finishes it
+      await auth.signInWithRedirect(provider);
+      return { redirecting: true };
+    }
+
+    if (forceRedirect) {
+      try {
+        return await viaRedirect();
+      } catch (e) {
+        throw fail(formatError(e), e.code);
+      }
+    }
+
     try {
       var cred = await auth.signInWithPopup(provider);
       sessionUser = cred.user;
-      var profile = await loadProfile(cred.user.uid);
-      if (!profile) {
-        await userDoc(cred.user.uid).set(
-          {
-            email: cred.user.email || "",
-            displayName: cred.user.displayName || (cred.user.email || "Trader").split("@")[0],
-            balances: cloneBalances(null),
-            kycStatus: "none",
-            createdAt: ts(),
-            updatedAt: ts(),
-          },
-          { merge: true }
-        );
-      } else {
-        await ensureWallet(cred.user.uid);
-      }
-      return { user: cred.user };
+      await ensureUserAfterOAuth(cred.user);
+      return { user: cred.user, via: "popup" };
     } catch (e) {
-      throw fail(formatError(e), e.code);
+      var code = (e && e.code) || "";
+      // Popup blocked / unsupported → full-page redirect (most common Netlify failure)
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/operation-not-supported-in-this-environment" ||
+        code === "auth/cancelled-popup-request"
+      ) {
+        try {
+          return await viaRedirect();
+        } catch (e2) {
+          throw fail(formatError(e2), e2.code);
+        }
+      }
+      // User closed popup — don't force redirect
+      if (code === "auth/popup-closed-by-user") {
+        throw fail(formatError(e), code);
+      }
+      throw fail(formatError(e), code);
     }
   }
 
@@ -954,6 +1043,7 @@
     signUp: signUp,
     signIn: signIn,
     signInWithOAuth: signInWithOAuth,
+    completeRedirectSignIn: completeRedirectSignIn,
     signOut: signOut,
     getSessionUser: getSessionUser,
     isAuthed: isAuthed,

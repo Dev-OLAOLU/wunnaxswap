@@ -1,34 +1,35 @@
 # Wunnaxswap — Google OAuth (Firebase)
 
-The site already has a **Firebase backend**. Google sign-in uses that backend — not a separate server.
+Google sign-in uses **Firebase Auth** (popup first; if blocked, full-page **redirect**).
 
-## Why the app opened without login before
+## Required console setup (without this, Google always fails)
 
-1. A **localStorage** flag (`wunnax_session`) was treated as “logged in” even with no Firebase user  
-2. **Google / Apple** used a **fake demo** popup (no real Google)  
-3. Some clean URLs were wrongly treated as public  
-
-Those loopholes are closed. Product pages need a **real Firebase session**.
-
-## Enable Google in Firebase (required once)
-
-1. Open [Firebase Console](https://console.firebase.google.com/) → project **wunnaxswap**  
-2. **Build → Authentication → Sign-in method**  
-3. **Google** → **Enable** → set a support email → **Save**  
-4. **Authentication → Settings → Authorized domains** → add:  
+1. [Firebase Console](https://console.firebase.google.com/) → **wunnaxswap**  
+2. **Authentication → Sign-in method → Google → Enable → Save** (support email required)  
+3. **Authentication → Settings → Authorized domains** must include:  
    - `wunnaxswap.netlify.app`  
-   - `localhost` (for local tests)  
-   - any custom domain you use  
+   - `localhost`  
+4. Wait ~1 minute after saving, then hard-refresh the site  
 
-5. (Usually automatic) Google provider uses the Firebase OAuth client. If popup fails with “unauthorized domain”, step 4 is missing.
+## App behaviour
+
+| Step | What happens |
+|------|----------------|
+| Click **Continue with Google** | Popup to Google (or redirect on mobile / if popup blocked) |
+| After success | Creates/loads Firestore `users/{uid}` wallet |
+| Return from redirect | `completeRedirectSignIn()` finishes session on `signin.html` / `signup.html` |
+
+## Common errors
+
+| Message | Fix |
+|---------|-----|
+| unauthorized domain | Add `wunnaxswap.netlify.app` under Authorized domains |
+| operation-not-allowed | Enable **Google** provider |
+| popup blocked | Allow popups, or wait — app falls back to redirect |
+| popup closed | User closed Google window — try again |
 
 ## Test
 
-1. Redeploy site to Netlify  
-2. Open https://wunnaxswap.netlify.app/markets.html → should redirect to **sign in**  
-3. **Continue with Google** → Google popup → lands on markets with real session  
-4. **Log out** → markets/trade/swap blocked again  
-
-## Email / password
-
-Already wired: `signUp` / `signIn` → Firebase Email/Password (must be enabled under Sign-in method).
+1. Deploy latest site to Netlify  
+2. https://wunnaxswap.netlify.app/signin.html → **Continue with Google**  
+3. Should land on markets with a real session  

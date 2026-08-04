@@ -1764,13 +1764,17 @@
     localStorage.setItem(STORAGE.session, "1");
     if (!localStorage.getItem(STORAGE.wallet)) setWallet(defaultWallet());
     toast(message || ("Signed in as " + (user.name || user.email)));
-    const nextRaw = new URLSearchParams(location.search).get("next");
+    var nextRaw =
+      new URLSearchParams(location.search).get("next") ||
+      sessionStorage.getItem("wunnax_auth_next");
+    try {
+      sessionStorage.removeItem("wunnax_auth_next");
+    } catch (_) {}
     const go = function () {
       setTimeout(function () {
         var dest = "markets.html";
         if (nextRaw && !/^https?:/i.test(nextRaw) && nextRaw.indexOf("//") === -1) {
-          // Allow relative paths like profile/wallet.html or /trade.html
-          dest = nextRaw.replace(/^\//, "");
+          dest = String(nextRaw).replace(/^\//, "");
         }
         location.href = dest;
       }, 650);
@@ -1821,21 +1825,34 @@
   }
 
   function socialLogin(provider) {
-    // Real Google OAuth via Firebase when backend is configured
+    // Real Google OAuth via Firebase (popup, auto-fallback to full-page redirect)
     if (provider === "google" && backendOn() && WunnaxBackend.signInWithOAuth) {
+      var next =
+        new URLSearchParams(location.search).get("next") ||
+        "markets.html";
+      try {
+        sessionStorage.setItem("wunnax_auth_next", next);
+      } catch (_) {}
       toast("Opening Google…");
       WunnaxBackend.signInWithOAuth("google")
-        .then(function () {
+        .then(function (res) {
+          if (res && res.redirecting) {
+            toast("Redirecting to Google…");
+            return null; // page navigates away
+          }
           return refreshBackendUser();
         })
         .then(function (u) {
+          if (!u && !(window.WunnaxBackend && WunnaxBackend.isAuthed())) return;
           finishLogin(
             u || { name: "Trader", email: "", provider: "google", backend: "firebase" },
             "Signed in with Google"
           );
         })
         .catch(function (err) {
-          toast(backendErr(err) || "Google sign-in failed. Enable Google in Firebase Console.");
+          var msg = backendErr(err) || "Google sign-in failed";
+          toast(msg);
+          console.error("[Wunnax] Google sign-in", err);
         });
       return;
     }
@@ -1850,13 +1867,11 @@
       return;
     }
 
-    // Device / passkey: not a real login when Firebase is on
     if (backendOn()) {
       toast("Use Google or email to sign in");
       return;
     }
 
-    // Offline demo only (no Firebase)
     showOAuthModal(provider, function () {
       const stamp = Date.now().toString(36);
       finishLogin(
@@ -2491,17 +2506,45 @@
         typeof WunnaxBackend.waitForReady === "function"
           ? WunnaxBackend.waitForReady(12000)
           : WunnaxBackend.init();
+      var googleRedirectDone = false;
       readyFn
         .then(function () {
-          // Drop localStorage-only "fake" sessions once Firebase has answered
+          // Finish Google full-page redirect (must run before clearing local session)
+          if (typeof WunnaxBackend.completeRedirectSignIn === "function") {
+            return WunnaxBackend.completeRedirectSignIn().catch(function (err) {
+              console.warn("[Wunnax] redirect result", err);
+              toast(backendErr(err) || "Google sign-in failed after redirect");
+              return null;
+            });
+          }
+          return null;
+        })
+        .then(function (redirectRes) {
+          if (redirectRes && redirectRes.user) {
+            googleRedirectDone = true;
+            return refreshBackendUser().then(function (u) {
+              finishLogin(
+                u || {
+                  name: redirectRes.user.displayName || "Trader",
+                  email: redirectRes.user.email || "",
+                  provider: "google",
+                  backend: "firebase",
+                },
+                "Signed in with Google"
+              );
+            });
+          }
           if (!WunnaxBackend.isAuthed()) clearLocalAuth();
           return refreshBackendUser();
         })
         .then(function () {
+          if (googleRedirectDone) return; // finishLogin navigates away
           if (WunnaxBackend.isAuthed()) return refreshBackendWallet();
         })
         .catch(function (e) { console.warn("[Wunnax] backend init", e); })
-        .finally(bootApp);
+        .finally(function () {
+          if (!googleRedirectDone) bootApp();
+        });
       return;
     }
     bootApp();
