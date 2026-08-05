@@ -131,8 +131,10 @@
   function kickIfAlreadyLoggedIn() {
     if (!stillOnAuthPage() || REDIRECTING) return;
     var hasSession = false;
+    var oauthPending = false;
     try {
       hasSession = localStorage.getItem("wunnax_session") === "1";
+      oauthPending = localStorage.getItem("wunnax_oauth_pending") === "1";
     } catch (_) {}
     var hasFirebase = false;
     try {
@@ -142,7 +144,12 @@
     try {
       hasBackend = !!(window.WunnaxBackend && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed());
     } catch (_) {}
-    if (hasSession || hasFirebase || hasBackend) {
+    if (hasFirebase || hasBackend || (hasSession && !oauthPending)) {
+      goHomeAfterSuccess("Login successful");
+      return;
+    }
+    // Mobile OAuth return sometimes lands on signin with pending flag + firebase user late
+    if (oauthPending && hasFirebase) {
       goHomeAfterSuccess("Login successful");
     }
   }
@@ -539,30 +546,49 @@
       b.addEventListener("click", function () {
         if (REDIRECTING) return;
         showMsg("", false);
-        if (!window.WunnaxBackend || !WunnaxBackend.signInWithOAuth) {
-          showMsg("Google login not ready. Use email instead.", false);
+
+        var btn = b;
+        btn.disabled = true;
+        showMsg("Opening Google…", true);
+
+        // Mobile-safe path: dedicated callback page owns redirect start + return
+        var isMobile = false;
+        try {
+          isMobile = /Android|iPhone|iPad|iPod|Mobile|CriOS|FxiOS|EdgiOS|Instagram|FBAN|FBAV/i.test(
+            navigator.userAgent || ""
+          );
+        } catch (_) {}
+
+        if (isMobile) {
+          try {
+            localStorage.setItem("wunnax_oauth_pending", "1");
+            localStorage.setItem("wunnax_oauth_pending_at", String(Date.now()));
+          } catch (_) {}
+          // Leave login page entirely — callback finishes auth → home
+          window.location.href = "/auth-callback.html?start=google";
           return;
         }
-        showMsg("Opening Google…", true);
+
+        if (!window.WunnaxBackend || !WunnaxBackend.signInWithOAuth) {
+          showMsg("Google login not ready. Use email instead.", false);
+          btn.disabled = false;
+          return;
+        }
         try {
           if (WunnaxBackend.init) WunnaxBackend.init().catch(function () {});
         } catch (_) {}
 
-        var btn = b;
-        btn.disabled = true;
-
-        WunnaxBackend.signInWithOAuth("google")
+        WunnaxBackend.signInWithOAuth("google", { forcePopup: true })
           .then(function (res) {
-            // Redirect flow: browser leaves this page; boot() finishes on return
             if (res && res.redirecting) {
-              showMsg("Continue with Google… you’ll return here shortly.", true);
+              // Popup blocked → mobile-style callback redirect
+              window.location.href = "/auth-callback.html?start=google";
               return;
             }
             if (res && res.user) {
               finishGoogleUser(res.user);
               return;
             }
-            // Fallback: check currentUser
             try {
               if (window.firebase && firebase.auth && firebase.auth().currentUser) {
                 finishGoogleUser(firebase.auth().currentUser);
@@ -574,6 +600,14 @@
           })
           .catch(function (err) {
             console.error("[auth-page] Google", err);
+            // Last resort: callback redirect flow
+            var code = (err && err.code) || "";
+            if (
+              /popup|internal-error|operation-not-supported/i.test(code + " " + ((err && err.message) || ""))
+            ) {
+              window.location.href = "/auth-callback.html?start=google";
+              return;
+            }
             showMsg(wrongPasswordMsg(err) || "Google sign-in failed. Use email.", false);
             btn.disabled = false;
           });

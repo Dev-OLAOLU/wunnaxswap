@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Signing in… | Wunnaxswap</title>
+  <meta name="theme-color" content="#F6F5F3" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/css/main.css?v=auth7" />
+  <style>
+    .auth-callback-box { text-align: center; max-width: 22rem; margin: 0 auto; }
+    .auth-callback-box .spin {
+      width: 40px; height: 40px; margin: 0 auto 1rem;
+      border: 3px solid #e4e2dc; border-top-color: #1333fc;
+      border-radius: 50%; animation: wxSpin .7s linear infinite;
+    }
+    @keyframes wxSpin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="auth-page">
+<div class="auth-wrap">
+  <div class="card auth-box auth-callback-box">
+    <a class="brand auth-brand" href="/index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
+    <div class="spin" id="cbSpin" aria-hidden="true"></div>
+    <h1 id="cbTitle" style="font-size:1.25rem">Signing you in…</h1>
+    <p class="muted" id="cbText">Completing Google sign-in. Please wait.</p>
+    <p id="cbError" class="auth-error" hidden role="alert"></p>
+    <a id="cbSignIn" class="btn btn-ghost" style="width:100%;margin-top:1rem;display:none" href="/signin.html">Back to sign in</a>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/js/firebase-config.js?v=mgoog1"></script>
+<script src="/assets/js/backend.js?v=mgoog1"></script>
+<script src="/assets/js/auth-callback.js?v=mgoog1"></script>
+</body>
+</html>

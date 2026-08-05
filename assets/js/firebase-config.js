@@ -17,11 +17,13 @@
     host = (typeof location !== "undefined" && location.hostname) || "";
   } catch (_) {}
 
+  /**
+   * Always use the Firebase-hosted authDomain for OAuth.
+   * Using the Vercel host + /__/auth proxy breaks Google redirect on many
+   * mobile browsers (Safari ITP / lost redirect result → bounce to login).
+   * Handler: https://wunnaxswap.firebaseapp.com/__/auth/handler
+   */
   var authDomain = "wunnaxswap.firebaseapp.com";
-  // Same-origin auth on Vercel (proxy via vercel.json rewrites)
-  if (host && (host.indexOf("vercel.app") !== -1 || host === "wunnaxswap.netlify.app")) {
-    authDomain = host;
-  }
 
   window.WUNNAX_FIREBASE = {
     apiKey: "AIzaSyAloxjP-p76entAz4xK5SXQ96dRtRLRAuY",
@@ -31,6 +33,9 @@
     messagingSenderId: "567140064736",
     appId: "1:567140064736:web:4df9736782798f7a0b1f85",
   };
+
+  // Expose host for debugging / authorized-domain checks
+  window.WUNNAX_HOST = host;
 
   window.WUNNAX_FIREBASE_ENABLED = function () {
     var c = window.WUNNAX_FIREBASE || {};

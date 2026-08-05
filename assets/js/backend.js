@@ -648,14 +648,22 @@
   }
 
   function prefersOAuthRedirect() {
-    // Mobile / in-app browsers: redirect is more reliable than popup.
-    // Desktop: prefer popup so we can finish login → home without a full page bounce.
+    // Mobile / in-app browsers: redirect only (popups are unreliable).
+    // Desktop: popup first.
     try {
       var ua = navigator.userAgent || "";
-      return /Android|iPhone|iPad|iPod|Mobile|Instagram|FBAN|FBAV/i.test(ua);
+      return /Android|iPhone|iPad|iPod|Mobile|Instagram|FBAN|FBAV|CriOS|FxiOS|EdgiOS/i.test(ua);
     } catch (_) {
       return false;
     }
+  }
+
+  function markOAuthPending() {
+    try {
+      localStorage.setItem("wunnax_oauth_pending", "1");
+      localStorage.setItem("wunnax_oauth_pending_at", String(Date.now()));
+      sessionStorage.setItem("wunnax_google_oauth", "1");
+    } catch (_) {}
   }
 
   /**
@@ -747,9 +755,20 @@
           : prefersOAuthRedirect();
 
     async function viaRedirect() {
+      // Use dedicated callback page on mobile so return never lands on a "dormant" login form
+      markOAuthPending();
       try {
-        sessionStorage.setItem("wunnax_google_oauth", "1");
-        sessionStorage.setItem("wunnax_google_return", location.pathname || "/signin.html");
+        // If we're not already on the callback page, jump there to start redirect.
+        // That way Google always returns to auth-callback.html (stable completion).
+        var path = (location.pathname || "").toLowerCase();
+        if (path.indexOf("auth-callback") === -1) {
+          var cb = "/auth-callback.html?start=google";
+          try {
+            cb = (location.origin || "") + cb;
+          } catch (_) {}
+          window.location.href = cb;
+          return { redirecting: true, via: "callback_page" };
+        }
       } catch (_) {}
       await auth.signInWithRedirect(provider);
       return { redirecting: true };

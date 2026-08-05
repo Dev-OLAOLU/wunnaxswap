@@ -945,13 +945,14 @@
       name === "signin" ||
       name === "signup" ||
       name === "forgot-password" ||
-      name === "reset-password"
+      name === "reset-password" ||
+      name === "auth-callback"
     );
   }
 
   function isAuthPage() {
     const path = (location.pathname || "").toLowerCase();
-    return /signin|signup|forgot-password|reset-password/.test(path);
+    return /signin|signup|forgot-password|reset-password|auth-callback/.test(path);
   }
 
   function signInUrl() {
