@@ -454,6 +454,21 @@
     );
   }
 
+  function finishGoogleUser(user) {
+    if (!user || REDIRECTING) return;
+    var email = (user.email || "").toLowerCase();
+    var name =
+      user.displayName ||
+      (email ? email.split("@")[0] : "Trader");
+    saveSession(email || "google-user", name, "firebase-google");
+    try {
+      localStorage.setItem("wunnax_session", "1");
+      sessionStorage.setItem("wunnax_just_logged_in", "1");
+      sessionStorage.removeItem("wunnax_google_oauth");
+    } catch (_) {}
+    goHomeAfterSuccess("Login successful");
+  }
+
   function wireGoogle() {
     var googleBtns = document.querySelectorAll('[data-provider="google"], #btnGoogle');
     googleBtns.forEach(function (b) {
@@ -470,30 +485,129 @@
         try {
           if (WunnaxBackend.init) WunnaxBackend.init().catch(function () {});
         } catch (_) {}
+
+        var btn = b;
+        btn.disabled = true;
+
         WunnaxBackend.signInWithOAuth("google")
           .then(function (res) {
-            if (res && res.redirecting) return;
+            // Redirect flow: browser leaves this page; boot() finishes on return
+            if (res && res.redirecting) {
+              showMsg("Continue with Google… you’ll return here shortly.", true);
+              return;
+            }
+            if (res && res.user) {
+              finishGoogleUser(res.user);
+              return;
+            }
+            // Fallback: check currentUser
             try {
-              localStorage.setItem("wunnax_session", "1");
-              sessionStorage.setItem("wunnax_just_logged_in", "1");
+              if (window.firebase && firebase.auth && firebase.auth().currentUser) {
+                finishGoogleUser(firebase.auth().currentUser);
+                return;
+              }
             } catch (_) {}
-            goHomeAfterSuccess("Login successful");
+            showMsg("Google sign-in incomplete. Try again or use email.", false);
+            btn.disabled = false;
           })
           .catch(function (err) {
+            console.error("[auth-page] Google", err);
             showMsg(wrongPasswordMsg(err) || "Google sign-in failed. Use email.", false);
+            btn.disabled = false;
           });
       });
     });
+  }
+
+  /**
+   * After Google redirect returns to sign-in, complete session and go to home.
+   * This was the main bug: redirect landed on login and stayed there.
+   */
+  function finishGoogleRedirectIfNeeded() {
+    if (!/signin|signup/i.test(location.pathname || "")) return;
+
+    function goIfUser(user) {
+      if (user) finishGoogleUser(user);
+    }
+
+    // 1) Backend helper
+    if (window.WunnaxBackend) {
+      try {
+        if (typeof WunnaxBackend.init === "function") {
+          WunnaxBackend.init().catch(function () {});
+        }
+      } catch (_) {}
+
+      if (typeof WunnaxBackend.completeRedirectSignIn === "function") {
+        withTimeout(WunnaxBackend.completeRedirectSignIn(), 8000, "google-redirect-timeout")
+          .then(function (res) {
+            if (res && res.user) goIfUser(res.user);
+          })
+          .catch(function (err) {
+            console.warn("[auth-page] google redirect", err);
+            try {
+              var ae = sessionStorage.getItem("wunnax_auth_error");
+              if (ae) showMsg(ae, false);
+            } catch (_) {}
+          });
+      }
+    }
+
+    // 2) Direct Firebase getRedirectResult + currentUser
+    try {
+      if (window.firebase && firebase.auth) {
+        if (!firebase.apps || !firebase.apps.length) {
+          if (window.WUNNAX_FIREBASE) firebase.initializeApp(window.WUNNAX_FIREBASE);
+        }
+        var auth = firebase.auth();
+        withTimeout(auth.getRedirectResult(), 8000, "redirect-timeout")
+          .then(function (result) {
+            if (result && result.user) goIfUser(result.user);
+            else if (auth.currentUser) goIfUser(auth.currentUser);
+          })
+          .catch(function () {
+            if (auth.currentUser) goIfUser(auth.currentUser);
+          });
+
+        // 3) Auth state listener (covers delayed rehydrate)
+        var unsub = auth.onAuthStateChanged(function (user) {
+          if (user) {
+            try {
+              if (typeof unsub === "function") unsub();
+            } catch (_) {}
+            goIfUser(user);
+          }
+        });
+        // Stop listening after a few seconds if still anonymous
+        setTimeout(function () {
+          try {
+            if (typeof unsub === "function") unsub();
+          } catch (_) {}
+        }, 10000);
+      }
+    } catch (e) {
+      console.warn("[auth-page] firebase google check", e);
+    }
+
+    // 4) Already have session from previous Google login on this page
+    try {
+      if (localStorage.getItem("wunnax_session") === "1" && sessionStorage.getItem("wunnax_google_oauth") === "1") {
+        sessionStorage.removeItem("wunnax_google_oauth");
+        goHomeAfterSuccess("Login successful");
+      }
+    } catch (_) {}
   }
 
   function boot() {
     wireSignIn();
     wireSignUp();
     wireGoogle();
-    // Background Firebase init only
+    // Background Firebase init
     try {
       if (window.WunnaxBackend && WunnaxBackend.init) WunnaxBackend.init().catch(function () {});
     } catch (_) {}
+    // Critical: complete Google OAuth redirect → home (not stuck on login)
+    finishGoogleRedirectIfNeeded();
   }
 
   if (document.readyState === "loading") {
@@ -502,3 +616,4 @@
     boot();
   }
 })();
+

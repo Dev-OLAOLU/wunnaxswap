@@ -642,20 +642,19 @@
   }
 
   function prefersOAuthRedirect() {
-    // On Netlify with same-origin authDomain + /__/auth proxy, use redirect
-    // (avoids opening blocked *.firebaseapp.com in Safari).
+    // Mobile / in-app browsers: redirect is more reliable than popup.
+    // Desktop: prefer popup so we can finish login → home without a full page bounce.
     try {
-      var host = (location && location.hostname) || "";
-      if (host.indexOf("vercel.app") !== -1 || host === "wunnaxswap.netlify.app") return true;
       var ua = navigator.userAgent || "";
-      return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+      return /Android|iPhone|iPad|iPod|Mobile|Instagram|FBAN|FBAV/i.test(ua);
     } catch (_) {
-      return true;
+      return false;
     }
   }
 
   /**
-   * After Google redirect returns to this origin, finish wallet + return user.
+   * After Google redirect returns to this origin, finish session + return user.
+   * Never blocks on Firestore.
    * @returns {Promise<{user: firebase.User}|null>}
    */
   async function completeRedirectSignIn() {
@@ -665,13 +664,13 @@
       var result = await auth.getRedirectResult();
       if (result && result.user) {
         sessionUser = result.user;
-        await ensureUserAfterOAuth(result.user);
+        // Non-blocking wallet/profile setup
+        Promise.resolve(ensureUserAfterOAuth(result.user)).catch(function () {});
         return { user: result.user, via: "redirect" };
       }
-      // Cookie/partition edge case: redirect finished but result empty — currentUser may still be set
       if (auth.currentUser) {
         sessionUser = auth.currentUser;
-        await ensureUserAfterOAuth(auth.currentUser);
+        Promise.resolve(ensureUserAfterOAuth(auth.currentUser)).catch(function () {});
         return { user: auth.currentUser, via: "currentUser" };
       }
       return null;
@@ -679,12 +678,11 @@
       if (e && (e.code === "auth/no-auth-event" || e.code === "auth/argument-error")) {
         if (auth.currentUser) {
           sessionUser = auth.currentUser;
-          await ensureUserAfterOAuth(auth.currentUser);
+          Promise.resolve(ensureUserAfterOAuth(auth.currentUser)).catch(function () {});
           return { user: auth.currentUser, via: "currentUser" };
         }
         return null;
       }
-      // Persist for UI after bounce back
       try {
         sessionStorage.setItem(
           "wunnax_auth_error",
@@ -721,9 +719,10 @@
   }
 
   /**
-   * Google OAuth via popup, with automatic redirect fallback (Netlify / mobile safe).
+   * Google OAuth via popup (desktop) or redirect (mobile).
+   * Always resolves with user or redirecting — wallet setup is non-blocking.
    * @param {"google"} providerName
-   * @param {{forceRedirect?: boolean}} [opts]
+   * @param {{forceRedirect?: boolean, forcePopup?: boolean}} [opts]
    * @returns {Promise<{user?: firebase.User, redirecting?: boolean}>}
    */
   async function signInWithOAuth(providerName, opts) {
@@ -734,10 +733,18 @@
       throw fail("Enable this provider in Firebase Console first", "auth/operation-not-allowed");
     }
     var provider = googleProvider();
-    // Netlify: always use redirect (popup is the #1 failure mode)
-    var useRedirect = opts.forcePopup ? false : opts.forceRedirect !== false && prefersOAuthRedirect();
+    var useRedirect =
+      opts.forcePopup === true
+        ? false
+        : opts.forceRedirect === true
+          ? true
+          : prefersOAuthRedirect();
 
     async function viaRedirect() {
+      try {
+        sessionStorage.setItem("wunnax_google_oauth", "1");
+        sessionStorage.setItem("wunnax_google_return", location.pathname || "/signin.html");
+      } catch (_) {}
       await auth.signInWithRedirect(provider);
       return { redirecting: true };
     }
@@ -753,7 +760,8 @@
     try {
       var cred = await auth.signInWithPopup(provider);
       sessionUser = cred.user;
-      await ensureUserAfterOAuth(cred.user);
+      // Do not await Firestore — login must finish immediately
+      Promise.resolve(ensureUserAfterOAuth(cred.user)).catch(function () {});
       return { user: cred.user, via: "popup" };
     } catch (e) {
       var code = (e && e.code) || "";
