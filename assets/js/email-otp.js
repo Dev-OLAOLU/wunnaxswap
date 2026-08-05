@@ -410,6 +410,17 @@
         sessionStorage.setItem("wunnax_otp_hint", "1");
       } catch (_) {}
 
+      // Register OTP on backend (needed for password reset API)
+      fetchWithTimeout(
+        "/api/store-otp",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, code: code }),
+        },
+        1200
+      ).catch(function () {});
+
       // Firestore in background — never block send UI
       if (db) {
         var id = docIdForEmail(email);
@@ -422,7 +433,7 @@
         });
       }
 
-      return { stored: "session", expiresAt: expiresAt };
+      return { stored: "session", expiresAt: expiresAt, codeHash: codeHash };
     });
   }
 
@@ -590,10 +601,11 @@
 
   /**
    * Complete password recovery with 6-digit OTP + new password.
-   * Tries serverless Admin API first, then same-browser Firebase oob path.
+   * Backend verifies code, resets password, then client redirects to login.
    */
   function completeWithOtp(email, code, newPassword) {
     email = normalizeEmail(email);
+    code = String(code || "").replace(/\s+/g, "");
     newPassword = String(newPassword || "");
     if (newPassword.length < 6) {
       return Promise.reject(
@@ -604,58 +616,64 @@
     }
 
     return verifyOtp(email, code).then(function () {
-      // 1) Server-side complete (Firebase Admin) if deployed
-      return fetch("/api/confirm-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, code: code, newPassword: newPassword }),
-      })
-        .then(function (res) {
-          if (res.ok) {
-            return res.json().then(function (body) {
-              if (body && body.ok) {
-                return markOtpUsed(email).then(function () {
-                  try {
-                    sessionStorage.removeItem(SS_PENDING);
-                    sessionStorage.setItem(SS_EMAIL, email);
-                  } catch (_) {}
-                  return { ok: true, via: "api" };
-                });
-              }
-              throw new Error((body && body.error) || "API confirm failed");
-            });
-          }
-          throw new Error("API unavailable");
-        })
-        .catch(function () {
-          // 2) Client path: save pending password, ensure Firebase reset email is out,
-          //    and finish when user opens the Firebase link (oobCode) — auto-applied.
-          try {
-            sessionStorage.setItem(
-              SS_PENDING,
-              JSON.stringify({
-                email: email,
-                newPassword: newPassword,
-                at: Date.now(),
-              })
-            );
-            sessionStorage.setItem(SS_EMAIL, email);
-          } catch (_) {}
+      var codeHash = null;
+      try {
+        var meta = JSON.parse(sessionStorage.getItem(SS_OTP_META) || "null");
+        if (meta && meta.email === email) codeHash = meta.codeHash;
+      } catch (_) {}
 
-          return sendViaFirebase(email)
-            .catch(function () {
-              /* may already have been sent */
-            })
-            .then(function () {
-              return markOtpUsed(email).then(function () {
-                return {
-                  ok: true,
-                  via: "pending_link",
-                  message:
-                    "Code accepted. Open the secure recovery link in your email to finish applying your new password (same device works automatically).",
-                };
-              });
+      // Ensure server has the OTP before confirm (covers cold serverless instances)
+      return fetchWithTimeout(
+        "/api/store-otp",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, code: code }),
+        },
+        1500
+      )
+        .catch(function () {
+          return null;
+        })
+        .then(function () {
+          return fetchWithTimeout(
+            "/api/confirm-otp",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: email,
+                code: code,
+                newPassword: newPassword,
+                clientVerified: true,
+                codeHash: codeHash,
+              }),
+            },
+            5000
+          );
+        })
+        .then(function (res) {
+          if (!res) throw new Error("Reset service unavailable. Try again.");
+          return res.json().then(function (body) {
+            if (!res.ok || !body || !body.ok) {
+              throw new Error((body && body.error) || "Could not reset password. Try again.");
+            }
+            return markOtpUsed(email).then(function () {
+              try {
+                sessionStorage.removeItem(SS_PENDING);
+                sessionStorage.setItem(SS_EMAIL, email);
+                // Remember recovery password path for same-browser sign-in assist
+                sessionStorage.setItem("wunnax_recovery_email", email);
+              } catch (_) {}
+              return {
+                ok: true,
+                via: body.via || "api",
+                firebaseUpdated: !!body.firebaseUpdated,
+                redirect: "/signin.html?reset=1",
+                message: body.message || "Password updated. Redirecting to sign in…",
+              };
             });
+          });
         });
     });
   }

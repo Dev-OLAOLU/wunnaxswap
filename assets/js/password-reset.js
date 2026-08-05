@@ -255,29 +255,26 @@
             return WunnaxEmailOtp.completeWithOob(oob, pass);
           })
           .then(function (res) {
-            if (res && res.via === "pending_link") {
-              showMsg(
-                res.message ||
-                  "Code accepted. Open the secure recovery link in your email to finish applying your new password.",
-                true
-              );
-              var pendingNote = $("resetPendingNote");
-              if (pendingNote) {
-                pendingNote.hidden = false;
-                pendingNote.removeAttribute("hidden");
-              }
-              if (btn) {
-                btn.disabled = false;
-                btn.textContent = "Set new password";
-              }
-              return;
-            }
-
-            showMsg("Password updated. Redirecting to sign in…", true);
+            // Backend reset done → show success → force login page
+            showMsg(
+              (res && res.message) || "Password updated. Redirecting to sign in…",
+              true
+            );
             showSuccessPanel("resetFormWrap", "resetSuccess");
+            var go = (res && res.redirect) || "/signin.html?reset=1";
             setTimeout(function () {
-              window.location.replace("/signin.html?reset=1");
-            }, 1100);
+              try {
+                window.location.replace(go);
+              } catch (_) {
+                window.location.href = go;
+              }
+            }, 700);
+            // Failsafe redirect
+            setTimeout(function () {
+              if (!/signin/i.test(location.pathname || "")) {
+                window.location.href = "/signin.html?reset=1";
+              }
+            }, 1600);
           })
           .catch(function (err) {
             console.error("[password-reset] confirm", err);

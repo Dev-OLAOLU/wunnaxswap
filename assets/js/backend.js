@@ -454,6 +454,40 @@
       }
       return { user: cred.user, session: true };
     } catch (e) {
+      var code = (e && e.code) || "";
+      // After OTP recovery, password may live on backend recovery store
+      if (
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential" ||
+        code === "auth/invalid-login-credentials" ||
+        code === "auth/user-not-found"
+      ) {
+        try {
+          var rec = await fetch("/api/login-recovery", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, password: password }),
+          });
+          if (rec.ok) {
+            var body = await rec.json();
+            if (body && body.ok && body.user) {
+              sessionUser = {
+                uid: body.user.id,
+                email: body.user.email,
+                displayName: body.user.name,
+              };
+              return {
+                user: sessionUser,
+                session: true,
+                recovery: true,
+                profile: body.user,
+              };
+            }
+          }
+        } catch (recErr) {
+          console.warn("[WunnaxBackend] recovery login", recErr);
+        }
+      }
       throw fail(formatError(e), e.code);
     }
   }

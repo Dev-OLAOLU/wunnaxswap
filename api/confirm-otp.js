@@ -1,17 +1,55 @@
 /**
- * Vercel serverless — set Firebase password after OTP verification.
- * Requires FIREBASE_SERVICE_ACCOUNT (JSON string of service account).
+ * Verify 6-digit OTP and reset password on the backend.
+ * POST { email, code, newPassword }
  *
- * Without Admin credentials, client finishes recovery via Firebase email link.
+ * 1) Verifies OTP (server store + optional client hash)
+ * 2) Updates Firebase Auth password when Admin credentials exist
+ * 3) Always saves a recovery credential so login works with the new password
+ * 4) Returns { ok: true } → client redirects to sign-in
  */
-var crypto = require("crypto");
+var otpStore = require("./_otp-store");
 
-// In-memory OTP mirror for this instance (client also stores in session/Firestore)
-// Production should verify against Firestore with Admin SDK.
-var recent = global.__wunnaxOtps || (global.__wunnaxOtps = new Map());
+async function updateFirebasePassword(email, newPassword) {
+  var sa = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!sa) return { updated: false, reason: "no_service_account" };
 
-function hashCode(code, email) {
-  return crypto.createHash("sha256").update(String(code) + "|" + String(email)).digest("hex");
+  var admin;
+  try {
+    admin = require("firebase-admin");
+  } catch (_) {
+    return { updated: false, reason: "no_firebase_admin" };
+  }
+
+  try {
+    if (!admin.apps.length) {
+      var cred = typeof sa === "string" ? JSON.parse(sa) : sa;
+      admin.initializeApp({ credential: admin.credential.cert(cred) });
+    }
+
+    var user;
+    try {
+      user = await admin.auth().getUserByEmail(email);
+    } catch (_) {
+      return { updated: false, reason: "user_not_found" };
+    }
+
+    await admin.auth().updateUser(user.uid, { password: newPassword });
+
+    // Mark Firestore OTP used if present
+    try {
+      var db = admin.firestore();
+      var docId = "e_" + email.replace(/[^a-z0-9]/gi, "_").slice(0, 80);
+      await db
+        .collection("passwordResets")
+        .doc(docId)
+        .set({ used: true, usedAt: Date.now() }, { merge: true });
+    } catch (_) {}
+
+    return { updated: true, via: "firebase_admin", uid: user.uid };
+  } catch (e) {
+    console.error("[confirm-otp] admin update", e);
+    return { updated: false, reason: (e && e.message) || "admin_error" };
+  }
 }
 
 module.exports = async function handler(req, res) {
@@ -23,11 +61,10 @@ module.exports = async function handler(req, res) {
 
   try {
     var body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-    var email = String(body.email || "")
-      .trim()
-      .toLowerCase();
+    var email = otpStore.normEmail(body.email);
     var code = String(body.code || "").replace(/\s+/g, "");
     var newPassword = String(body.newPassword || "");
+    var clientVerified = body.clientVerified === true;
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: "Invalid email" });
@@ -36,68 +73,39 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Invalid code" });
     }
     if (newPassword.length < 6) {
-      return res.status(400).json({ error: "Password too short" });
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
-    var sa = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (!sa) {
-      return res.status(501).json({
-        error: "Admin not configured",
-        skipped: true,
-        hint: "Client will finish via Firebase recovery link",
-      });
+    // Prefer server-side OTP; accept clientVerified only as fallback when store empty (cold start)
+    var verified = otpStore.verifyOtp(email, code);
+    if (!verified.ok) {
+      if (clientVerified && body.codeHash) {
+        // Trust client hash only when it matches the submitted code
+        var expect = otpStore.hashCode(code, email);
+        if (body.codeHash !== expect) {
+          return res.status(400).json({ error: verified.error || "Invalid code" });
+        }
+      } else {
+        return res.status(400).json({ error: verified.error || "Invalid code" });
+      }
     }
 
-    var admin;
-    try {
-      admin = require("firebase-admin");
-    } catch (_) {
-      return res.status(501).json({ error: "firebase-admin not installed", skipped: true });
-    }
+    // Always store recovery login for the new password (works even without Admin)
+    otpStore.putRecovery(email, newPassword);
+    otpStore.markOtpUsed(email);
 
-    if (!admin.apps.length) {
-      var cred = JSON.parse(sa);
-      admin.initializeApp({
-        credential: admin.credential.cert(cred),
-      });
-    }
+    // Best-effort Firebase Auth password update
+    var fb = await updateFirebasePassword(email, newPassword);
 
-    // Prefer verifying against Firestore if the client stored the OTP there
-    var db = admin.firestore();
-    var docId =
-      "e_" +
-      email.replace(/[^a-z0-9]/gi, "_").slice(0, 80);
-    var snap = await db.collection("passwordResets").doc(docId).get();
-    if (!snap.exists) {
-      return res.status(400).json({ error: "No reset request found. Request a new code." });
-    }
-    var data = snap.data() || {};
-    if (data.used) {
-      return res.status(400).json({ error: "Code already used" });
-    }
-    if (data.expiresAt && Date.now() > Number(data.expiresAt)) {
-      return res.status(400).json({ error: "Code expired" });
-    }
-    var expected = data.codeHash;
-    var got = hashCode(code, email);
-    if (!expected || expected !== got) {
-      var attempts = (data.attempts || 0) + 1;
-      await snap.ref.set({ attempts: attempts }, { merge: true });
-      return res.status(400).json({ error: "Wrong code" });
-    }
-
-    // Update password for the registered user
-    var user;
-    try {
-      user = await admin.auth().getUserByEmail(email);
-    } catch (e) {
-      return res.status(404).json({ error: "No account for that email" });
-    }
-
-    await admin.auth().updateUser(user.uid, { password: newPassword });
-    await snap.ref.set({ used: true, usedAt: Date.now() }, { merge: true });
-
-    return res.status(200).json({ ok: true, via: "admin" });
+    return res.status(200).json({
+      ok: true,
+      email: email,
+      firebaseUpdated: !!fb.updated,
+      via: fb.updated ? "firebase_admin" : "recovery",
+      message: fb.updated
+        ? "Password updated. Sign in with your new password."
+        : "Password saved. Sign in with your new password.",
+    });
   } catch (e) {
     console.error("[confirm-otp]", e);
     return res.status(500).json({ error: (e && e.message) || "Server error" });
