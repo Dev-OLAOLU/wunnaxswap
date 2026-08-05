@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Derivatives Desk | Wunnaxswap</title>
+  <meta name="description" content="Trade FX, indices, commodities, and crypto perpetuals on the Wunnaxswap Derivatives Desk — demo terminal with AI desk chat." />
+  <meta name="theme-color" content="#F6F5F3" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css?v=deriv1" />
+</head>
+<body>
+<main class="container-wide deriv-page" style="padding-bottom:2.5rem">
+  <div class="page-hero deriv-hero">
+    <div>
+      <div class="pill">◆ Multi-asset derivatives · FX · Indices · Commodities · Crypto perps</div>
+      <h1>Derivatives <span class="grad">desk</span></h1>
+      <p class="lead" style="margin-bottom:.85rem">
+        Go long or short across global markets — not just crypto. Demo pricing, leverage, and funding for paper trading.
+      </p>
+      <div class="deriv-class-tabs" id="derivClassTabs" role="tablist" aria-label="Asset class"></div>
+    </div>
+    <div class="card deriv-hero-card">
+      <div class="muted" style="font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase">Live desk pulse</div>
+      <div class="deriv-pulse" id="derivPulse"></div>
+      <button type="button" class="btn btn-primary btn-sm" id="openDerivChat" style="margin-top:.85rem;width:100%">
+        Open Derivatives Chat
+      </button>
+    </div>
+  </div>
+
+  <div class="deriv-shell">
+    <!-- Market list -->
+    <aside class="card deriv-list-panel">
+      <div class="deriv-list-head">
+        <strong>Markets</strong>
+        <input id="derivSearch" type="search" placeholder="Search symbol…" autocomplete="off" />
+      </div>
+      <div class="deriv-list" id="derivList" role="listbox" aria-label="Derivative markets"></div>
+    </aside>
+
+    <!-- Chart + stats -->
+    <section class="deriv-main">
+      <div class="card" style="padding:1rem;margin-bottom:.85rem">
+        <div class="deriv-pair-head">
+          <div>
+            <div class="deriv-pair-title">
+              <span id="derivSymbol">EURUSD</span>
+              <span class="tag-perp" id="derivProduct">PERP</span>
+              <span class="deriv-class-badge" id="derivClassBadge">FX</span>
+            </div>
+            <div class="muted" id="derivName" style="font-size:.9rem">Euro / US Dollar</div>
+          </div>
+          <div style="text-align:right">
+            <div class="mono" style="font-size:1.65rem;font-weight:800" id="derivPrice">—</div>
+            <div class="mono" id="derivChange" style="font-weight:700">—</div>
+          </div>
+        </div>
+        <div class="trade-stats" id="derivStats"></div>
+        <div class="chart-toolbar">
+          <div class="tf-group" id="derivTfGroup">
+            <button type="button" class="tf-btn" data-tf="1m">1m</button>
+            <button type="button" class="tf-btn" data-tf="5m">5m</button>
+            <button type="button" class="tf-btn active" data-tf="15m">15m</button>
+            <button type="button" class="tf-btn" data-tf="1h">1H</button>
+            <button type="button" class="tf-btn" data-tf="4h">4H</button>
+            <button type="button" class="tf-btn" data-tf="1D">1D</button>
+          </div>
+          <span class="muted" style="font-size:.78rem">Demo OHLC · SMA20 · funding shown on ticket</span>
+        </div>
+        <div class="chart-box" style="height:360px"><canvas id="derivChart"></canvas></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card" style="padding:1rem">
+          <h3 style="margin:.1rem 0 .55rem;font-size:.95rem">Bids</h3>
+          <div class="ob-list" id="derivBids"></div>
+        </div>
+        <div class="card" style="padding:1rem">
+          <h3 style="margin:.1rem 0 .55rem;font-size:.95rem">Asks</h3>
+          <div class="ob-list" id="derivAsks"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ticket + desk chat -->
+    <aside class="deriv-side">
+      <div class="card trade-box" style="padding:1rem;margin-bottom:.85rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.55rem">
+          <strong style="font-size:.9rem">Order ticket</strong>
+          <span class="funding-pill" id="derivFunding">Funding 0.01%</span>
+        </div>
+        <div class="side-toggle">
+          <button type="button" class="long active" id="derivLong">Long</button>
+          <button type="button" class="short" id="derivShort">Short</button>
+        </div>
+        <label class="muted" style="font-size:.78rem;font-weight:700">Leverage</label>
+        <div class="lev-row" id="derivLevRow"></div>
+        <div class="field"><label>Order type</label>
+          <select id="derivOrderType"><option value="market">Market</option><option value="limit">Limit</option></select>
+        </div>
+        <div class="field"><label>Price</label><input id="derivOrderPrice" type="number" step="any" placeholder="Market uses last" /></div>
+        <div class="field"><label id="derivSizeLabel">Size (contracts)</label><input id="derivOrderSize" type="number" step="any" placeholder="0.00" /></div>
+        <div class="muted" style="font-size:.8rem;margin-bottom:.7rem" id="derivHint">Paper margin · demo only</div>
+        <button type="button" class="btn btn-primary" style="width:100%" id="derivSubmit">Place long</button>
+        <p class="muted" style="font-size:.72rem;margin:.65rem 0 0;line-height:1.4">
+          Simulated multi-asset derivatives. Not investment advice. No real funds.
+        </p>
+      </div>
+
+      <div class="card deriv-chat-card" id="derivChatCard">
+        <div class="deriv-chat-head">
+          <div>
+            <strong>Derivatives Chat</strong>
+            <div class="muted" style="font-size:.78rem">Desk AI · FX · indices · commodities · perps</div>
+          </div>
+          <span class="deriv-live-dot" title="Online">Live</span>
+        </div>
+        <div class="deriv-chat-msgs" id="derivChatMsgs"></div>
+        <div class="deriv-chat-quick" id="derivChatQuick"></div>
+        <div class="deriv-chat-compose">
+          <input id="derivChatInput" type="text" placeholder="Ask about EURUSD, gold, Nasdaq…" autocomplete="off" />
+          <button type="button" class="btn btn-primary btn-sm" id="derivChatSend">Send</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="section" style="padding-top:1.5rem">
+    <div class="section-head">
+      <div>
+        <h2>Open paper positions</h2>
+        <p>Local demo book for this browser session.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Symbol</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>Lev</th><th>uPnL</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="derivPositionsBody">
+          <tr><td colspan="8" class="muted">No open positions yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/js/firebase-config.js?v=mgoog1"></script>
+<script src="assets/js/backend.js?v=mgoog1"></script>
+<script src="assets/js/data.js?v=deriv1"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/app.js?v=deriv1"></script>
+<script src="assets/js/derivatives.js?v=deriv1"></script>
+</body>
+</html>

@@ -191,6 +191,78 @@ WUNNA.STAKING = [
 WUNNA.ROADMAP = WUNNA.ROADMAP || [
   { tag: "Live", title: "Spot & swap", desc: "Markets, instant swap, and demo wallet balances." },
   { tag: "Live", title: "Multi-exchange quotes", desc: "Arbitrage scanner across supported venues." },
+  { tag: "Live", title: "Derivatives desk", desc: "FX, indices, commodities & crypto perps in one terminal." },
   { tag: "Next", title: "Earn expansion", desc: "More staking assets and flexible plans." },
   { tag: "Later", title: "Deep liquidity", desc: "Tighter spreads and more order types." },
 ];
+
+/**
+ * Multi-asset derivatives (demo) — not just crypto.
+ * class: forex | index | commodity | crypto
+ */
+function deriv(symbol, name, price, change, cls, opts) {
+  opts = opts || {};
+  return {
+    symbol: symbol,
+    name: name,
+    price: price,
+    change: change,
+    high: price * (1 + Math.abs(change) / 100 + 0.008),
+    low: price * (1 - Math.abs(change) / 100 - 0.008),
+    volume: opts.volume || price * 50000,
+    class: cls || "crypto",
+    product: opts.product || "PERP",
+    quote: opts.quote || "USDT",
+    leverageMax: opts.leverageMax || 50,
+    funding: typeof opts.funding === "number" ? opts.funding : 0.01,
+    tick: opts.tick || 0.01,
+    unit: opts.unit || "contracts",
+    session: opts.session || "24/7",
+  };
+}
+
+WUNNA.DERIV_CLASSES = [
+  { id: "all", label: "All markets" },
+  { id: "forex", label: "FX" },
+  { id: "index", label: "Indices" },
+  { id: "commodity", label: "Commodities" },
+  { id: "crypto", label: "Crypto perps" },
+];
+
+WUNNA.DERIVATIVES = [
+  // Forex
+  deriv("EURUSD", "Euro / US Dollar", 1.0864, 0.12, "forex", { product: "PERP", quote: "USD", leverageMax: 100, tick: 0.0001, unit: "lots", session: "Mon–Fri" }),
+  deriv("GBPUSD", "British Pound / USD", 1.2738, -0.08, "forex", { product: "PERP", quote: "USD", leverageMax: 100, tick: 0.0001, unit: "lots", session: "Mon–Fri" }),
+  deriv("USDJPY", "US Dollar / Yen", 151.42, 0.21, "forex", { product: "PERP", quote: "JPY", leverageMax: 100, tick: 0.01, unit: "lots", session: "Mon–Fri" }),
+  deriv("AUDUSD", "Aussie / USD", 0.6612, 0.05, "forex", { product: "PERP", quote: "USD", leverageMax: 100, tick: 0.0001, unit: "lots", session: "Mon–Fri" }),
+  deriv("USDCAD", "USD / Canadian", 1.3588, -0.04, "forex", { product: "PERP", quote: "CAD", leverageMax: 100, tick: 0.0001, unit: "lots", session: "Mon–Fri" }),
+  deriv("USDCHF", "USD / Swiss Franc", 0.8845, 0.09, "forex", { product: "PERP", quote: "CHF", leverageMax: 100, tick: 0.0001, unit: "lots", session: "Mon–Fri" }),
+  // Indices
+  deriv("US500", "S&P 500", 5284.6, 0.35, "index", { product: "PERP", quote: "USD", leverageMax: 50, tick: 0.1, unit: "contracts", session: "Near 24h" }),
+  deriv("NAS100", "Nasdaq 100", 18420.3, 0.62, "index", { product: "PERP", quote: "USD", leverageMax: 50, tick: 0.1, unit: "contracts", session: "Near 24h" }),
+  deriv("US30", "Dow Jones 30", 39210.8, 0.18, "index", { product: "PERP", quote: "USD", leverageMax: 50, tick: 1, unit: "contracts", session: "Near 24h" }),
+  deriv("GER40", "DAX 40", 18240.5, -0.22, "index", { product: "PERP", quote: "EUR", leverageMax: 40, tick: 0.5, unit: "contracts", session: "Near 24h" }),
+  deriv("UK100", "FTSE 100", 8245.1, 0.11, "index", { product: "PERP", quote: "GBP", leverageMax: 40, tick: 0.5, unit: "contracts", session: "Near 24h" }),
+  deriv("JP225", "Nikkei 225", 38890.0, 0.44, "index", { product: "PERP", quote: "JPY", leverageMax: 40, tick: 5, unit: "contracts", session: "Near 24h" }),
+  // Commodities
+  deriv("XAUUSD", "Gold", 2348.6, 0.28, "commodity", { product: "PERP", quote: "USD", leverageMax: 50, tick: 0.1, unit: "oz", session: "Near 24h" }),
+  deriv("XAGUSD", "Silver", 28.42, 0.55, "commodity", { product: "PERP", quote: "USD", leverageMax: 30, tick: 0.01, unit: "oz", session: "Near 24h" }),
+  deriv("WTI", "Crude Oil WTI", 78.35, -0.72, "commodity", { product: "PERP", quote: "USD", leverageMax: 30, tick: 0.01, unit: "bbl", session: "Near 24h" }),
+  deriv("BRENT", "Brent Crude", 82.1, -0.51, "commodity", { product: "PERP", quote: "USD", leverageMax: 30, tick: 0.01, unit: "bbl", session: "Near 24h" }),
+  deriv("NATGAS", "Natural Gas", 2.84, 1.2, "commodity", { product: "PERP", quote: "USD", leverageMax: 20, tick: 0.001, unit: "mmBtu", session: "Near 24h" }),
+  deriv("COPPER", "Copper", 4.62, 0.33, "commodity", { product: "PERP", quote: "USD", leverageMax: 20, tick: 0.001, unit: "lb", session: "Near 24h" }),
+  // Crypto perps (linked to crypto book)
+  deriv("BTCUSDT", "Bitcoin Perp", 65044.76, 0.8, "crypto", { product: "PERP", quote: "USDT", leverageMax: 100, funding: 0.008, unit: "contracts" }),
+  deriv("ETHUSDT", "Ethereum Perp", 1947.61, 3.45, "crypto", { product: "PERP", quote: "USDT", leverageMax: 100, funding: 0.012, unit: "contracts" }),
+  deriv("SOLUSDT", "Solana Perp", 76.21, 2.1, "crypto", { product: "PERP", quote: "USDT", leverageMax: 75, funding: 0.015, unit: "contracts" }),
+  deriv("BNBUSDT", "BNB Perp", 571.74, 0.18, "crypto", { product: "PERP", quote: "USDT", leverageMax: 50, funding: 0.01, unit: "contracts" }),
+  deriv("XRPUSDT", "XRP Perp", 1.0995, 0.23, "crypto", { product: "PERP", quote: "USDT", leverageMax: 50, funding: 0.009, unit: "contracts" }),
+  deriv("DOGEUSDT", "Dogecoin Perp", 0.07208, -0.87, "crypto", { product: "PERP", quote: "USDT", leverageMax: 50, funding: 0.02, unit: "contracts" }),
+];
+
+WUNNA.derivBySymbol = function (sym) {
+  sym = String(sym || "").toUpperCase();
+  return (WUNNA.DERIVATIVES || []).find(function (d) {
+    return d.symbol === sym;
+  });
+};

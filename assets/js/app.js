@@ -251,10 +251,12 @@
       '<a href="' + p + 'markets.html">Markets</a>' +
       '<div class="drop"><button type="button">Trade ▾</button><div class="drop-menu">' +
       '<a href="' + p + 'trade.html">Spot Terminal</a>' +
-      '<a href="' + p + 'trade.html?mode=futures">Futures Perp</a>' +
+      '<a href="' + p + 'trade.html?mode=futures">Crypto Futures</a>' +
+      '<a href="' + p + 'derivatives.html">Derivatives Desk</a>' +
       '<a href="' + p + 'swap.html">Instant Swap</a>' +
       '<a href="' + p + 'arbitrage.html">Arbitrage Scanner</a>' +
       "</div></div>" +
+      '<a href="' + p + 'derivatives.html">Derivatives</a>' +
       '<a href="' + p + 'earn.html">Earn</a>' +
       '<div class="drop"><button type="button">Tools ▾</button><div class="drop-menu">' +
       '<a href="' + p + 'tools/market-cap.html">Market Cap</a>' +
@@ -287,6 +289,7 @@
       '<a href="' + homeUrl() + '">Home</a>' +
       '<a href="' + p + 'markets.html">Markets</a>' +
       '<a href="' + p + 'trade.html">Spot Trade</a>' +
+      '<a href="' + p + 'derivatives.html">Derivatives</a>' +
       '<a href="' + p + 'swap.html">Swap</a>' +
       '<a href="' + p + 'arbitrage.html">Arbitrage</a>' +
       '<a href="' + p + 'earn.html">Earn</a>' +
@@ -308,6 +311,7 @@
       "<div><h4>Products</h4>" +
       '<a href="' + p + 'markets.html">Markets</a><a href="' + p + 'swap.html">Swap</a>' +
       '<a href="' + p + 'arbitrage.html">Arbitrage</a><a href="' + p + 'trade.html">Spot Trade</a>' +
+      '<a href="' + p + 'derivatives.html">Derivatives</a>' +
       '<a href="' + p + 'earn.html">Earn</a></div>' +
       "<div><h4>Tools</h4>" +
       '<a href="' + p + 'tools/market-cap.html">Market Cap</a><a href="' + p + 'tools/screener.html">Screener</a>' +
@@ -367,6 +371,7 @@
 
   function pageContext() {
     const path = (location.pathname || "").toLowerCase();
+    if (/derivativ/.test(path)) return "derivatives";
     const file = path.split("/").pop() || "index.html";
     if (file.includes("trade")) return "trade";
     if (file.includes("swap")) return "swap";
@@ -677,8 +682,16 @@
       },
       {
         test: /future|perp|leverage|long|short|funding|margin/,
-        text: "Futures are USDT-M perpetuals: go Long or Short with leverage. Funding is shown every ~8h in the demo UI. Use Trade → Futures Perp. This is simulated margin only until a real backend is connected.",
-        links: [{ href: p + "trade.html?mode=futures", label: "Trade Futures" }],
+        text: "Crypto futures are USDT-M perpetuals on Trade → Crypto Futures. For multi-asset derivatives (FX, indices, gold, oil + crypto perps) open the Derivatives Desk with Long/Short, leverage, and Derivatives Chat.",
+        links: [
+          { href: p + "derivatives.html", label: "Derivatives Desk" },
+          { href: p + "trade.html?mode=futures", label: "Crypto Futures" },
+        ],
+      },
+      {
+        test: /derivative|forex|fx|eurusd|gbpusd|nasdaq|s&p|spx|dax|gold|xau|oil|wti|commodity|index desk/,
+        text: "Derivatives Desk covers FX majors, equity indices, commodities (gold/oil), and crypto perps — not spot-only crypto. Pick a class tab, Long/Short with leverage, and use Derivatives Chat for desk Q&A.",
+        links: [{ href: p + "derivatives.html", label: "Open Derivatives Desk" }],
       },
       {
         test: /spot|buy|sell|order|limit|market order/,
@@ -733,7 +746,8 @@
 
     // Page-aware default when user is vague
     const ctxTips = {
-      trade: { text: "You're on Trade. Pick a pair, set market/limit size, then Buy/Sell (spot) or Long/Short (futures). Need leverage, funding, or order types explained?", links: [{ href: p + "fees.html", label: "Fees" }] },
+      trade: { text: "You're on Trade. Pick a pair, set market/limit size, then Buy/Sell (spot) or Long/Short (crypto futures). For FX, indices, gold/oil open Derivatives Desk.", links: [{ href: p + "derivatives.html", label: "Derivatives" }, { href: p + "fees.html", label: "Fees" }] },
+      derivatives: { text: "You're on the Derivatives Desk. Filter FX / Indices / Commodities / Crypto perps, Long or Short with leverage, and use Derivatives Chat for market questions.", links: [{ href: p + "trade.html", label: "Crypto Trade" }] },
       swap: { text: "You're on Swap. Choose send & receive assets, enter amount, check the rate and fee, then confirm. Balances update in your demo wallet.", links: [{ href: p + "profile/wallet.html", label: "Wallet" }] },
       arbitrage: { text: "You're on Arbitrage. Refresh quotes, compare buy vs sell venues, and use the estimated net on $1,000 to judge a route (demo).", links: [{ href: p + "markets.html", label: "Markets" }] },
       markets: { text: "You're on Markets. Filter by spot/futures/favorites, search a symbol, then open Trade. Prices here are live demo ticks.", links: [{ href: p + "trade.html", label: "Trade" }] },
