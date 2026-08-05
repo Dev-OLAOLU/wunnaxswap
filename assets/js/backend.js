@@ -455,7 +455,7 @@
       return { user: cred.user, session: true };
     } catch (e) {
       var code = (e && e.code) || "";
-      // After OTP recovery, password may live on backend recovery store
+      // After OTP recovery, password may live on backend or same-browser recovery store
       if (
         code === "auth/wrong-password" ||
         code === "auth/invalid-credential" ||
@@ -487,6 +487,30 @@
         } catch (recErr) {
           console.warn("[WunnaxBackend] recovery login", recErr);
         }
+
+        // Same-browser recovery credential (set after OTP password reset)
+        try {
+          var raw = localStorage.getItem("wunnax_recovery_" + email);
+          if (raw) {
+            var stored = JSON.parse(raw);
+            var expect = btoa(unescape(encodeURIComponent("wx|" + password))).slice(0, 48);
+            if (stored && stored.check === expect) {
+              var name = email.split("@")[0] || "Trader";
+              sessionUser = { uid: "recovery_local", email: email, displayName: name };
+              return {
+                user: sessionUser,
+                session: true,
+                recovery: true,
+                profile: {
+                  name: name,
+                  email: email,
+                  provider: "email",
+                  backend: "recovery",
+                },
+              };
+            }
+          }
+        } catch (_) {}
       }
       throw fail(formatError(e), e.code);
     }

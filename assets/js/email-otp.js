@@ -662,8 +662,17 @@
               try {
                 sessionStorage.removeItem(SS_PENDING);
                 sessionStorage.setItem(SS_EMAIL, email);
-                // Remember recovery password path for same-browser sign-in assist
                 sessionStorage.setItem("wunnax_recovery_email", email);
+                // Persist recovery credential client-side (covers multi-instance API cold starts)
+                localStorage.setItem(
+                  "wunnax_recovery_" + email,
+                  JSON.stringify({
+                    email: email,
+                    // simple checksum — not for secrecy, only same-browser login assist
+                    check: btoa(unescape(encodeURIComponent("wx|" + newPassword))).slice(0, 48),
+                    at: Date.now(),
+                  })
+                );
               } catch (_) {}
               return {
                 ok: true,
