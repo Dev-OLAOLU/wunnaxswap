@@ -1,6 +1,6 @@
 /**
- * Forgot-password + reset-password page logic (Firebase Auth email reset).
- * Flow: email → Firebase sends reset message → user opens link / enters code → new password.
+ * Forgot-password + reset-password pages.
+ * Random 6-digit codes emailed via WunnaxEmailOtp (FormSubmit / EmailJS / Firebase).
  */
 (function () {
   "use strict";
@@ -34,14 +34,26 @@
     }
   }
 
-  function waitBackend(ms) {
+  function errText(err) {
+    if (!err) return "Something went wrong. Try again.";
+    if (window.WunnaxBackend && WunnaxBackend.formatError) {
+      try {
+        return WunnaxBackend.formatError(err);
+      } catch (_) {}
+    }
+    return err.message || String(err);
+  }
+
+  function waitReady(ms) {
     ms = ms || 10000;
     return new Promise(function (resolve) {
       var start = Date.now();
       (function tick() {
-        if (window.WunnaxBackend && typeof WunnaxBackend.sendPasswordReset === "function") {
-          if (typeof WunnaxBackend.init === "function") {
-            Promise.resolve(WunnaxBackend.init())
+        var otp = window.WunnaxEmailOtp;
+        var be = window.WunnaxBackend;
+        if (otp && typeof otp.requestOtp === "function") {
+          if (be && typeof be.init === "function") {
+            Promise.resolve(be.init())
               .then(function () {
                 resolve(true);
               })
@@ -54,7 +66,7 @@
           return;
         }
         if (Date.now() - start > ms) {
-          resolve(false);
+          resolve(!!otp);
           return;
         }
         setTimeout(tick, 40);
@@ -62,26 +74,21 @@
     });
   }
 
-  function errText(err) {
-    if (window.WunnaxBackend && WunnaxBackend.formatError) {
-      return WunnaxBackend.formatError(err);
-    }
-    return (err && err.message) || "Something went wrong. Try again.";
+  function extractOobCode() {
+    var code = qs("oobCode") || qs("oob") || "";
+    if (code) return code.trim();
+    // Long Firebase codes are not 6-digit — leave empty for OTP field
+    return "";
   }
 
-  function extractOobCode() {
-    // Firebase email link params
-    var code = qs("oobCode") || qs("code") || qs("oob") || "";
-    if (code) return code.trim();
-    // Sometimes nested in continueUrl
-    try {
-      var cont = qs("continueUrl") || qs("continueUrl".toLowerCase()) || "";
-      if (cont) {
-        var u = new URL(cont);
-        return (u.searchParams.get("oobCode") || "").trim();
-      }
-    } catch (_) {}
-    return "";
+  function showSuccessPanel(formWrapId, successId) {
+    var formWrap = $(formWrapId);
+    var successBox = $(successId);
+    if (formWrap) formWrap.hidden = true;
+    if (successBox) {
+      successBox.hidden = false;
+      successBox.removeAttribute("hidden");
+    }
   }
 
   function wireForgot() {
@@ -104,18 +111,17 @@
 
         if (btn) {
           btn.disabled = true;
-          btn.textContent = "Sending…";
+          btn.textContent = "Sending code…";
         }
 
-        waitBackend()
+        waitReady()
           .then(function (ok) {
-            if (!ok || !WunnaxBackend.sendPasswordReset) {
+            if (!ok || !window.WunnaxEmailOtp) {
               throw new Error("Reset service not ready. Refresh the page.");
             }
-            return WunnaxBackend.sendPasswordReset(email);
+            return WunnaxEmailOtp.requestOtp(email);
           })
-          .then(function () {
-            // Swap to success panel
+          .then(function (res) {
             var formBox = $("forgotFormWrap");
             var successBox = $("forgotSuccess");
             if (formBox) formBox.hidden = true;
@@ -124,11 +130,21 @@
               successBox.removeAttribute("hidden");
             }
             var emailEl = $("sentToEmail");
-            if (emailEl) emailEl.textContent = email;
-            showMsg("Reset code sent — check your email inbox (and spam).", true);
+            if (emailEl) emailEl.textContent = (res && res.email) || email;
+
+            var channels = (res && res.channels) || [];
+            var extra = channels.length
+              ? " Delivered via: " + channels.join(", ") + "."
+              : "";
+            showMsg("Reset code sent — check your inbox and spam folder." + extra, true);
+
+            // Prefill reset page email
+            try {
+              sessionStorage.setItem("wunnax_reset_email", email);
+            } catch (_) {}
           })
           .catch(function (err) {
-            console.error("[password-reset] send", err);
+            console.error("[password-reset] send otp", err);
             showMsg(errText(err), false);
             if (btn) {
               btn.disabled = false;
@@ -147,37 +163,45 @@
     if (!form) return;
 
     var codeInput = $("rpCode");
+    var emailInput = $("rpEmail");
     var emailHint = $("rpEmailHint");
-    var fromUrl = extractOobCode();
-    if (codeInput && fromUrl) {
-      codeInput.value = fromUrl;
+
+    // Prefill email
+    var saved = "";
+    try {
+      saved =
+        (window.WunnaxEmailOtp && WunnaxEmailOtp.getSavedEmail && WunnaxEmailOtp.getSavedEmail()) ||
+        sessionStorage.getItem("wunnax_reset_email") ||
+        "";
+    } catch (_) {}
+    if (emailInput && saved) emailInput.value = saved;
+    if (emailHint && saved) {
+      emailHint.textContent = "Account: " + saved;
+      emailHint.hidden = false;
+      emailHint.removeAttribute("hidden");
     }
 
-    // Prefill email hint from session if we have it
-    try {
-      var saved = sessionStorage.getItem("wunnax_reset_email");
-      if (emailHint && saved) {
-        emailHint.textContent = "Account: " + saved;
-        emailHint.hidden = false;
-      }
-    } catch (_) {}
-
-    // If code present, verify and show which email it belongs to
-    if (fromUrl) {
-      waitBackend().then(function (ok) {
-        if (!ok || !WunnaxBackend.verifyPasswordResetCode) return;
-        WunnaxBackend.verifyPasswordResetCode(fromUrl)
-          .then(function (res) {
-            if (emailHint && res && res.email) {
-              emailHint.textContent = "Resetting password for " + res.email;
-              emailHint.hidden = false;
-              emailHint.removeAttribute("hidden");
-            }
-            showMsg("Reset code accepted. Choose a new password.", true);
-          })
-          .catch(function () {
-            /* user can still try submitting; invalid will show then */
-          });
+    var oobFromUrl = extractOobCode();
+    // If Firebase link landed with oobCode, try auto-apply pending password
+    if (oobFromUrl) {
+      waitReady().then(function () {
+        if (!window.WunnaxEmailOtp) return;
+        WunnaxEmailOtp.tryApplyPendingWithOob(oobFromUrl).then(function (applied) {
+          if (applied && applied.ok) {
+            showSuccessPanel("resetFormWrap", "resetSuccess");
+            showMsg("Password updated. Redirecting to sign in…", true);
+            setTimeout(function () {
+              window.location.replace("/signin.html?reset=1");
+            }, 1000);
+            return;
+          }
+          // Show oob in a hidden way — long codes go in the code field for manual confirm
+          if (codeInput && !codeInput.value) {
+            // Keep code field free for 6-digit; store oob separately
+            codeInput.setAttribute("data-oob", oobFromUrl);
+            showMsg("Recovery link opened. Enter a new password below (or your 6-digit email code).", true);
+          }
+        });
       });
     }
 
@@ -188,15 +212,16 @@
         e.stopPropagation();
         showMsg("", false);
 
+        var email =
+          (emailInput && emailInput.value.trim()) ||
+          saved ||
+          "";
         var code = (codeInput && codeInput.value.trim()) || "";
+        var oobAttr = (codeInput && codeInput.getAttribute("data-oob")) || oobFromUrl || "";
         var pass = ($("rpPass") && $("rpPass").value) || "";
         var pass2 = ($("rpPass2") && $("rpPass2").value) || "";
         var btn = $("rpSubmit") || form.querySelector('button[type="submit"]');
 
-        if (!code) {
-          showMsg("Paste the reset code from your email (or open the email link).", false);
-          return false;
-        }
         if (!pass || pass.length < 6) {
           showMsg("New password must be at least 6 characters.", false);
           return false;
@@ -206,30 +231,61 @@
           return false;
         }
 
+        // Detect 6-digit OTP vs long Firebase oobCode
+        var isSixDigit = /^\d{6}$/.test(code.replace(/\s+/g, ""));
+        var isLongOob = code.length > 20 || (oobAttr && oobAttr.length > 20);
+
+        if (!isSixDigit && !isLongOob && !oobAttr) {
+          showMsg("Enter the 6-digit code from your email.", false);
+          return false;
+        }
+        if (isSixDigit && !email) {
+          showMsg("Enter the account email you used to request the code.", false);
+          return false;
+        }
+
         if (btn) {
           btn.disabled = true;
           btn.textContent = "Updating…";
         }
 
-        waitBackend()
+        waitReady()
           .then(function (ok) {
-            if (!ok || !WunnaxBackend.confirmPasswordReset) {
+            if (!ok || !window.WunnaxEmailOtp) {
               throw new Error("Reset service not ready. Refresh the page.");
             }
-            return WunnaxBackend.confirmPasswordReset(code, pass);
-          })
-          .then(function () {
-            showMsg("Password updated. Redirecting to sign in…", true);
-            var successBox = $("resetSuccess");
-            var formWrap = $("resetFormWrap");
-            if (formWrap) formWrap.hidden = true;
-            if (successBox) {
-              successBox.hidden = false;
-              successBox.removeAttribute("hidden");
+
+            if (isSixDigit) {
+              return WunnaxEmailOtp.completeWithOtp(email, code.replace(/\s+/g, ""), pass);
             }
+
+            var oob = isLongOob ? code : oobAttr;
+            return WunnaxEmailOtp.completeWithOob(oob, pass);
+          })
+          .then(function (res) {
+            if (res && res.via === "pending_link") {
+              showMsg(
+                res.message ||
+                  "Code accepted. Open the secure recovery link in your email to finish applying your new password.",
+                true
+              );
+              var pendingNote = $("resetPendingNote");
+              if (pendingNote) {
+                pendingNote.hidden = false;
+                pendingNote.removeAttribute("hidden");
+              }
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Set new password";
+              }
+              return;
+            }
+
+            showMsg("Password updated. Redirecting to sign in…", true);
+            showSuccessPanel("resetFormWrap", "resetSuccess");
             setTimeout(function () {
               window.location.replace("/signin.html?reset=1");
-            }, 1200);
+            }, 1100);
           })
           .catch(function (err) {
             console.error("[password-reset] confirm", err);
@@ -253,7 +309,6 @@
       WunnaxBackend.init().catch(function () {});
     }
 
-    // Sign-in page toast when coming back from successful reset
     if (/signin/i.test(location.pathname || "") && qs("reset") === "1") {
       var el = $("authError");
       if (el) {

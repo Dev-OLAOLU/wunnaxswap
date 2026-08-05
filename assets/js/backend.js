@@ -1190,6 +1190,13 @@
     sendPasswordReset: sendPasswordReset,
     verifyPasswordResetCode: verifyPasswordResetCode,
     confirmPasswordReset: confirmPasswordReset,
+    /** Prefer WunnaxEmailOtp.requestOtp for 6-digit email codes */
+    requestEmailOtp: function (email) {
+      if (global.WunnaxEmailOtp && WunnaxEmailOtp.requestOtp) {
+        return WunnaxEmailOtp.requestOtp(email);
+      }
+      return sendPasswordReset(email);
+    },
     signInWithOAuth: signInWithOAuth,
     completeRedirectSignIn: completeRedirectSignIn,
     signOut: signOut,

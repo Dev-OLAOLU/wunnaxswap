@@ -61,5 +61,24 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // passwordResets/{id} — OTP hashes for email recovery (no plaintext codes)
+    match /passwordResets/{id} {
+      allow create: if request.resource.data.keys().hasAll(['email', 'codeHash', 'expiresAt', 'createdAt'])
+        && request.resource.data.email is string
+        && request.resource.data.codeHash is string
+        && request.resource.data.expiresAt is number
+        && !('code' in request.resource.data)
+        && !('plainCode' in request.resource.data);
+
+      allow get: if true;
+
+      allow update: if resource.data.keys().hasAll(['email', 'codeHash'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['used', 'usedAt', 'attempts'])
+        && (!('code' in request.resource.data));
+
+      allow list, delete: if false;
+    }
   }
 }
