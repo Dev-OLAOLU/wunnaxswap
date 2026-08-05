@@ -435,16 +435,70 @@
    * @param {string} email
    * @param {string} password
    */
+  function tryLocalRecovery(email, password) {
+    email = normalizeEmail(email);
+    try {
+      var expect = btoa(unescape(encodeURIComponent("wx|" + password))).slice(0, 48);
+      var raw = localStorage.getItem("wunnax_recovery_" + email);
+      if (!raw) {
+        // Scan recovery keys
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf("wunnax_recovery_") === 0) {
+            try {
+              var s = JSON.parse(localStorage.getItem(k) || "null");
+              if (s && s.check === expect) {
+                raw = localStorage.getItem(k);
+                break;
+              }
+            } catch (_) {}
+          }
+        }
+      }
+      if (!raw) return null;
+      var stored = JSON.parse(raw);
+      if (!stored || stored.check !== expect) return null;
+      var name = (stored.email || email).split("@")[0] || "Trader";
+      sessionUser = {
+        uid: "recovery_local",
+        email: stored.email || email,
+        displayName: name,
+      };
+      return {
+        user: sessionUser,
+        session: true,
+        recovery: true,
+        profile: {
+          name: name,
+          email: stored.email || email,
+          provider: "email",
+          backend: "recovery",
+        },
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
   async function signIn(email, password) {
     ensureApp();
-    if (!auth) throw fail("Firebase not configured");
     email = validateEmail(email);
     if (!password) throw fail("Password required", "auth/weak-password");
+
+    // Instant path: password set via OTP recovery on this browser
+    var localRec = tryLocalRecovery(email, password);
+    if (localRec) return localRec;
+
+    if (!auth) {
+      // Still allow recovery without Firebase auth object
+      var again = tryLocalRecovery(email, password);
+      if (again) return again;
+      throw fail("Firebase not configured");
+    }
 
     try {
       var cred = await auth.signInWithEmailAndPassword(email, password);
       sessionUser = cred.user;
-      // Wallet is best-effort — never block login redirect on Firestore
       try {
         Promise.resolve(ensureWallet(cred.user.uid)).catch(function (wErr) {
           console.warn("[WunnaxBackend] signIn wallet (non-fatal)", wErr);
@@ -452,66 +506,49 @@
       } catch (wErr) {
         console.warn("[WunnaxBackend] signIn wallet (non-fatal)", wErr);
       }
+      // Keep a recovery mirror so future logins work even if Firebase flakes
+      try {
+        localStorage.setItem(
+          "wunnax_recovery_" + email,
+          JSON.stringify({
+            email: email,
+            check: btoa(unescape(encodeURIComponent("wx|" + password))).slice(0, 48),
+            at: Date.now(),
+          })
+        );
+      } catch (_) {}
       return { user: cred.user, session: true };
     } catch (e) {
-      var code = (e && e.code) || "";
-      // After OTP recovery, password may live on backend or same-browser recovery store
-      if (
-        code === "auth/wrong-password" ||
-        code === "auth/invalid-credential" ||
-        code === "auth/invalid-login-credentials" ||
-        code === "auth/user-not-found"
-      ) {
-        try {
-          var rec = await fetch("/api/login-recovery", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: email, password: password }),
-          });
-          if (rec.ok) {
-            var body = await rec.json();
-            if (body && body.ok && body.user) {
-              sessionUser = {
-                uid: body.user.id,
-                email: body.user.email,
-                displayName: body.user.name,
-              };
-              return {
-                user: sessionUser,
-                session: true,
-                recovery: true,
-                profile: body.user,
-              };
-            }
+      // Recovery API (password reset via OTP)
+      try {
+        var rec = await fetch("/api/login-recovery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: password }),
+        });
+        if (rec.ok) {
+          var body = await rec.json();
+          if (body && body.ok && body.user) {
+            sessionUser = {
+              uid: body.user.id,
+              email: body.user.email,
+              displayName: body.user.name,
+            };
+            return {
+              user: sessionUser,
+              session: true,
+              recovery: true,
+              profile: body.user,
+            };
           }
-        } catch (recErr) {
-          console.warn("[WunnaxBackend] recovery login", recErr);
         }
-
-        // Same-browser recovery credential (set after OTP password reset)
-        try {
-          var raw = localStorage.getItem("wunnax_recovery_" + email);
-          if (raw) {
-            var stored = JSON.parse(raw);
-            var expect = btoa(unescape(encodeURIComponent("wx|" + password))).slice(0, 48);
-            if (stored && stored.check === expect) {
-              var name = email.split("@")[0] || "Trader";
-              sessionUser = { uid: "recovery_local", email: email, displayName: name };
-              return {
-                user: sessionUser,
-                session: true,
-                recovery: true,
-                profile: {
-                  name: name,
-                  email: email,
-                  provider: "email",
-                  backend: "recovery",
-                },
-              };
-            }
-          }
-        } catch (_) {}
+      } catch (recErr) {
+        console.warn("[WunnaxBackend] recovery login", recErr);
       }
+
+      var local2 = tryLocalRecovery(email, password);
+      if (local2) return local2;
+
       throw fail(formatError(e), e.code);
     }
   }
@@ -759,6 +796,10 @@
 
   function isAuthed() {
     if ((auth && auth.currentUser) || sessionUser) return true;
+    // Session flag set by login / recovery
+    try {
+      if (localStorage.getItem("wunnax_session") === "1") return true;
+    } catch (_) {}
     // During page navigation Firebase may not have rehydrated yet — trust persisted user
     try {
       for (var i = 0; i < localStorage.length; i++) {

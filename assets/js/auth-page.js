@@ -1,7 +1,6 @@
 /**
  * Standalone sign-in / sign-up page logic.
- * Auth success ALWAYS shows "Login successful" then hard-navigates home.
- * Does not depend on full app boot or Firestore.
+ * Sign in → "Login successful" → home. Never hangs.
  */
 (function () {
   "use strict";
@@ -24,19 +23,20 @@
   function showMsg(text, ok) {
     var el = $("authError");
     if (!el) return;
-    el.hidden = !text;
-    el.removeAttribute("hidden");
     if (!text) {
       el.hidden = true;
       el.setAttribute("hidden", "");
+      el.textContent = "";
+      el.style.display = "none";
       return;
     }
+    el.hidden = false;
+    el.removeAttribute("hidden");
     el.className = ok ? "auth-success" : "auth-error";
     el.textContent = text;
     el.style.display = "block";
   }
 
-  /** Full-screen banner so success is impossible to miss */
   function showSuccessOverlay(msg) {
     var existing = document.getElementById("wxLoginSuccess");
     if (existing) existing.remove();
@@ -59,26 +59,22 @@
     document.body.appendChild(ov);
   }
 
-  function saveSession(email, name) {
+  function saveSession(email, name, backend) {
     try {
       localStorage.setItem("wunnax_session", "1");
       localStorage.setItem(
         "wunnax_user",
         JSON.stringify({
           name: name || (email && email.split("@")[0]) || "Trader",
-          email: email || "",
+          email: (email || "").toLowerCase(),
           provider: "email",
-          backend: "firebase",
+          backend: backend || "firebase",
         })
       );
       sessionStorage.setItem("wunnax_just_logged_in", "1");
     } catch (_) {}
   }
 
-  /**
-   * Show success, then force leave this page for home.
-   * Multiple navigation attempts — nothing should cancel this.
-   */
   function goHomeAfterSuccess(msg) {
     if (REDIRECTING) return;
     REDIRECTING = true;
@@ -89,7 +85,6 @@
 
     var url = homeUrl();
 
-    // Paint success first, then navigate
     setTimeout(function () {
       try {
         window.location.replace(url);
@@ -100,19 +95,15 @@
           window.location.assign(url);
         }
       }
-    }, 500);
+    }, 400);
 
     setTimeout(function () {
-      if (/signin|signup/i.test(location.pathname || "")) {
-        window.location.href = url;
-      }
-    }, 1200);
+      if (/signin|signup/i.test(location.pathname || "")) window.location.href = url;
+    }, 1000);
 
     setTimeout(function () {
-      if (/signin|signup/i.test(location.pathname || "")) {
-        window.location.assign(HOME);
-      }
-    }, 2200);
+      if (/signin|signup/i.test(location.pathname || "")) window.location.assign(HOME);
+    }, 1800);
   }
 
   function wrongPasswordMsg(err) {
@@ -133,77 +124,11 @@
     if (code === "auth/invalid-email") return "Enter a valid email address.";
     if (code === "auth/too-many-requests") return "Too many attempts. Try again later.";
     if (code === "auth/network-request-failed") return "Network error. Check connection.";
-    if (code === "auth/email-already-in-use") {
-      return "That email is already registered. Use Sign in with your password.";
-    }
-    if (code === "auth/weak-password") return "Password must be at least 6 characters.";
+    if (code === "auth/timeout") return "Sign-in timed out. Try again.";
     if (window.WunnaxBackend && WunnaxBackend.formatError) {
       return WunnaxBackend.formatError(err) || "Wrong email or password.";
     }
     return "Wrong email or password.";
-  }
-
-  function waitBackend(ms) {
-    ms = ms || 10000;
-    return new Promise(function (resolve) {
-      var start = Date.now();
-      (function tick() {
-        if (window.WunnaxBackend && typeof WunnaxBackend.signIn === "function") {
-          if (typeof WunnaxBackend.init === "function") {
-            Promise.resolve(WunnaxBackend.init())
-              .then(function () {
-                resolve(true);
-              })
-              .catch(function () {
-                resolve(true);
-              });
-            return;
-          }
-          resolve(true);
-          return;
-        }
-        if (Date.now() - start > ms) {
-          resolve(false);
-          return;
-        }
-        setTimeout(tick, 40);
-      })();
-    });
-  }
-
-  /** Direct Firebase fallback if backend module is missing */
-  function firebaseSignIn(email, pass) {
-    if (!window.firebase || !firebase.auth) {
-      return Promise.reject(new Error("Firebase not loaded"));
-    }
-    if (!firebase.apps || !firebase.apps.length) {
-      if (window.WUNNAX_FIREBASE) {
-        firebase.initializeApp(window.WUNNAX_FIREBASE);
-      }
-    }
-    return firebase.auth().signInWithEmailAndPassword(email, pass);
-  }
-
-  function firebaseSignUp(email, pass, name) {
-    if (!window.firebase || !firebase.auth) {
-      return Promise.reject(new Error("Firebase not loaded"));
-    }
-    if (!firebase.apps || !firebase.apps.length) {
-      if (window.WUNNAX_FIREBASE) {
-        firebase.initializeApp(window.WUNNAX_FIREBASE);
-      }
-    }
-    return firebase
-      .auth()
-      .createUserWithEmailAndPassword(email, pass)
-      .then(function (cred) {
-        if (name && cred.user && cred.user.updateProfile) {
-          return cred.user.updateProfile({ displayName: name }).then(function () {
-            return cred;
-          });
-        }
-        return cred;
-      });
   }
 
   function withTimeout(promise, ms, label) {
@@ -214,9 +139,154 @@
           var e = new Error(label || "Request timed out. Try again.");
           e.code = "auth/timeout";
           reject(e);
-        }, ms || 15000);
+        }, ms || 8000);
       }),
     ]);
+  }
+
+  function recoveryCheck(email, pass) {
+    email = String(email || "")
+      .trim()
+      .toLowerCase();
+    var expect = "";
+    try {
+      expect = btoa(unescape(encodeURIComponent("wx|" + pass))).slice(0, 48);
+    } catch (_) {
+      return null;
+    }
+
+    // Exact key
+    try {
+      var keys = ["wunnax_recovery_" + email];
+      // Scan all recovery keys (email case variants)
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf("wunnax_recovery_") === 0) keys.push(k);
+      }
+      for (var j = 0; j < keys.length; j++) {
+        var raw = localStorage.getItem(keys[j]);
+        if (!raw) continue;
+        try {
+          var stored = JSON.parse(raw);
+          if (stored && stored.check === expect) {
+            var em = (stored.email || email || "").toLowerCase();
+            var name = em.split("@")[0] || "Trader";
+            return {
+              user: { email: em, displayName: name, uid: "recovery_local" },
+              session: true,
+              recovery: true,
+              profile: { name: name, email: em, provider: "email", backend: "recovery" },
+            };
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function apiRecoveryLogin(email, pass) {
+    return fetch("/api/login-recovery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, password: pass }),
+    })
+      .then(function (res) {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(function (body) {
+        if (body && body.ok && body.user) {
+          return {
+            user: {
+              uid: body.user.id,
+              email: body.user.email,
+              displayName: body.user.name,
+            },
+            session: true,
+            recovery: true,
+            profile: body.user,
+          };
+        }
+        return null;
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
+  function firebaseSignIn(email, pass) {
+    if (!window.firebase || !firebase.auth) {
+      return Promise.reject(Object.assign(new Error("Firebase not loaded"), { code: "auth/network-request-failed" }));
+    }
+    try {
+      if (!firebase.apps || !firebase.apps.length) {
+        if (window.WUNNAX_FIREBASE) firebase.initializeApp(window.WUNNAX_FIREBASE);
+      }
+    } catch (_) {}
+    return firebase.auth().signInWithEmailAndPassword(email, pass).then(function (cred) {
+      return { user: cred.user, session: true, recovery: false };
+    });
+  }
+
+  /**
+   * Full sign-in: recovery local → Firebase → recovery API → success/home
+   */
+  function doSignIn(email, pass) {
+    email = String(email || "")
+      .trim()
+      .toLowerCase();
+
+    // 1) Instant recovery (after password reset on this browser)
+    var local = recoveryCheck(email, pass);
+    if (local) return Promise.resolve(local);
+
+    // 2) Firebase + recovery fallbacks
+    var authPromise;
+    if (window.WunnaxBackend && typeof WunnaxBackend.signIn === "function") {
+      // Don't wait on long init — kick it off, then sign in
+      try {
+        if (typeof WunnaxBackend.init === "function") WunnaxBackend.init().catch(function () {});
+      } catch (_) {}
+      authPromise = WunnaxBackend.signIn(email, pass);
+    } else {
+      authPromise = firebaseSignIn(email, pass);
+    }
+
+    return withTimeout(authPromise, 6000, "Sign-in timed out. Try again.")
+      .then(function (res) {
+        return res || { user: { email: email }, session: true };
+      })
+      .catch(function (err) {
+        // 3) Local recovery again (in case email casing differed earlier)
+        var again = recoveryCheck(email, pass);
+        if (again) return again;
+
+        // 4) API recovery
+        return withTimeout(apiRecoveryLogin(email, pass), 2500, "recovery-timeout").then(function (apiRes) {
+          if (apiRes) return apiRes;
+          throw err;
+        });
+      });
+  }
+
+  function firebaseSignUp(email, pass, name) {
+    if (!window.firebase || !firebase.auth) {
+      return Promise.reject(new Error("Firebase not loaded"));
+    }
+    if (!firebase.apps || !firebase.apps.length) {
+      if (window.WUNNAX_FIREBASE) firebase.initializeApp(window.WUNNAX_FIREBASE);
+    }
+    return firebase
+      .auth()
+      .createUserWithEmailAndPassword(email, pass)
+      .then(function (cred) {
+        if (name && cred.user && cred.user.updateProfile) {
+          return cred.user.updateProfile({ displayName: name }).then(function () {
+            return { user: cred.user, session: true };
+          });
+        }
+        return { user: cred.user, session: true };
+      });
   }
 
   function wireSignIn() {
@@ -243,46 +313,54 @@
           return false;
         }
 
+        email = email.toLowerCase();
+
         if (btn) {
           btn.disabled = true;
           btn.textContent = "Signing in…";
         }
 
-        waitBackend()
-          .then(function (ok) {
-            var p;
-            if (ok && window.WunnaxBackend && WunnaxBackend.signIn) {
-              p = WunnaxBackend.signIn(email, pass);
-            } else {
-              p = firebaseSignIn(email, pass);
-            }
-            return withTimeout(p, 12000, "Sign-in timed out. Check connection and try again.");
-          })
-          .then(function (res) {
-            var name =
-              (res && res.profile && res.profile.name) ||
-              (res && res.user && (res.user.displayName || res.user.email || email).split("@")[0]) ||
-              email.split("@")[0];
-            saveSession(email, name);
-            goHomeAfterSuccess("Login successful");
-          })
-          .catch(function (err) {
-            console.error("[auth-page] signIn", err);
-            // If Firebase already signed in despite error, still go home
-            try {
-              if (window.firebase && firebase.auth && firebase.auth().currentUser) {
-                saveSession(email, email.split("@")[0]);
-                goHomeAfterSuccess("Login successful");
-                return;
-              }
-            } catch (_) {}
-            showMsg(wrongPasswordMsg(err), false);
-            if (btn) {
-              btn.disabled = false;
-              btn.textContent = "Sign in";
-            }
-          });
+        var finished = false;
+        function ok(res) {
+          if (finished || REDIRECTING) return;
+          finished = true;
+          var name =
+            (res && res.profile && res.profile.name) ||
+            (res && res.user && (res.user.displayName || (res.user.email || email).split("@")[0])) ||
+            email.split("@")[0];
+          saveSession(email, name, res && res.recovery ? "recovery" : "firebase");
+          goHomeAfterSuccess("Login successful");
+        }
+        function fail(err) {
+          if (finished || REDIRECTING) return;
+          finished = true;
+          console.error("[auth-page] signIn", err);
+          showMsg(wrongPasswordMsg(err), false);
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Sign in";
+          }
+        }
 
+        // Hard cap — never stick on Signing in…
+        setTimeout(function () {
+          if (finished || REDIRECTING) return;
+          var local = recoveryCheck(email, pass);
+          if (local) {
+            ok(local);
+            return;
+          }
+          // Last resort: if Firebase currentUser appeared
+          try {
+            if (window.firebase && firebase.auth && firebase.auth().currentUser) {
+              ok({ user: firebase.auth().currentUser, session: true });
+              return;
+            }
+          } catch (_) {}
+          fail(Object.assign(new Error("Sign-in timed out. Try again."), { code: "auth/timeout" }));
+        }, 7000);
+
+        doSignIn(email, pass).then(ok).catch(fail);
         return false;
       },
       true
@@ -305,7 +383,7 @@
         showMsg("", false);
 
         var name = ($("suName") && $("suName").value.trim()) || "";
-        var email = ($("suEmail") && $("suEmail").value.trim()) || "";
+        var email = (($("suEmail") && $("suEmail").value.trim()) || "").toLowerCase();
         var pass = ($("suPass") && $("suPass").value) || "";
         var pass2 = ($("suPass2") && $("suPass2").value) || "";
         var btn = form.querySelector('button[type="submit"]');
@@ -328,25 +406,37 @@
           btn.textContent = "Creating account…";
         }
 
-        waitBackend()
-          .then(function (ok) {
-            var p;
-            if (ok && window.WunnaxBackend && WunnaxBackend.signUp) {
-              p = WunnaxBackend.signUp(email, pass, name);
-            } else {
-              p = firebaseSignUp(email, pass, name);
-            }
-            return withTimeout(p, 12000, "Sign-up timed out. Check connection and try again.");
-          })
+        var p;
+        if (window.WunnaxBackend && WunnaxBackend.signUp) {
+          try {
+            if (WunnaxBackend.init) WunnaxBackend.init().catch(function () {});
+          } catch (_) {}
+          p = WunnaxBackend.signUp(email, pass, name);
+        } else {
+          p = firebaseSignUp(email, pass, name);
+        }
+
+        withTimeout(p, 10000, "Sign-up timed out. Try again.")
           .then(function () {
-            saveSession(email, name);
+            // Also store recovery so they can always sign back in on this browser
+            try {
+              localStorage.setItem(
+                "wunnax_recovery_" + email,
+                JSON.stringify({
+                  email: email,
+                  check: btoa(unescape(encodeURIComponent("wx|" + pass))).slice(0, 48),
+                  at: Date.now(),
+                })
+              );
+            } catch (_) {}
+            saveSession(email, name, "firebase");
             goHomeAfterSuccess("Login successful");
           })
           .catch(function (err) {
             console.error("[auth-page] signUp", err);
             try {
               if (window.firebase && firebase.auth && firebase.auth().currentUser) {
-                saveSession(email, name);
+                saveSession(email, name, "firebase");
                 goHomeAfterSuccess("Login successful");
                 return;
               }
@@ -372,25 +462,26 @@
       b.addEventListener("click", function () {
         if (REDIRECTING) return;
         showMsg("", false);
-        waitBackend().then(function (ok) {
-          if (!ok || !WunnaxBackend.signInWithOAuth) {
-            showMsg("Google login not ready. Use email instead.", false);
-            return;
-          }
-          showMsg("Opening Google…", true);
-          WunnaxBackend.signInWithOAuth("google")
-            .then(function (res) {
-              if (res && res.redirecting) return;
-              try {
-                localStorage.setItem("wunnax_session", "1");
-                sessionStorage.setItem("wunnax_just_logged_in", "1");
-              } catch (_) {}
-              goHomeAfterSuccess("Login successful");
-            })
-            .catch(function (err) {
-              showMsg(wrongPasswordMsg(err) || "Google sign-in failed. Use email.", false);
-            });
-        });
+        if (!window.WunnaxBackend || !WunnaxBackend.signInWithOAuth) {
+          showMsg("Google login not ready. Use email instead.", false);
+          return;
+        }
+        showMsg("Opening Google…", true);
+        try {
+          if (WunnaxBackend.init) WunnaxBackend.init().catch(function () {});
+        } catch (_) {}
+        WunnaxBackend.signInWithOAuth("google")
+          .then(function (res) {
+            if (res && res.redirecting) return;
+            try {
+              localStorage.setItem("wunnax_session", "1");
+              sessionStorage.setItem("wunnax_just_logged_in", "1");
+            } catch (_) {}
+            goHomeAfterSuccess("Login successful");
+          })
+          .catch(function (err) {
+            showMsg(wrongPasswordMsg(err) || "Google sign-in failed. Use email.", false);
+          });
       });
     });
   }
@@ -399,28 +490,12 @@
     wireSignIn();
     wireSignUp();
     wireGoogle();
-    if (window.WunnaxBackend && WunnaxBackend.init) {
-      WunnaxBackend.init().catch(function () {});
-    }
-
-    // Already signed in? Go home (don't stick on sign-in)
+    // Background Firebase init only
     try {
-      if (
-        window.firebase &&
-        firebase.auth &&
-        firebase.auth().currentUser &&
-        /signin|signup/i.test(location.pathname || "")
-      ) {
-        saveSession(
-          firebase.auth().currentUser.email || "",
-          firebase.auth().currentUser.displayName || ""
-        );
-        goHomeAfterSuccess("Login successful");
-      }
+      if (window.WunnaxBackend && WunnaxBackend.init) WunnaxBackend.init().catch(function () {});
     } catch (_) {}
   }
 
-  // Wire immediately — DOMContentLoaded may have already fired
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);
   } else {
