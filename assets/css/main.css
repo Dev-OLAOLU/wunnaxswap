@@ -1341,6 +1341,98 @@ body > footer,
 }
 .topbar { z-index: 50; }
 
+/* ========== Landing: “The market’s moving” banner ========== */
+.market-moving-band {
+  width: 100%;
+  margin: 0.5rem 0 0.25rem;
+  padding: 0;
+}
+.market-moving-inner {
+  position: relative;
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  min-height: clamp(160px, 28vw, 280px);
+  background: #b91c1c;
+}
+.market-moving-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: clamp(160px, 28vw, 280px);
+  object-fit: cover;
+  object-position: center;
+}
+/* Readable CTA layer (works even if image is cropped on small screens) */
+.market-moving-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  background: linear-gradient(
+    180deg,
+    rgba(127, 29, 29, 0.15) 0%,
+    rgba(127, 29, 29, 0.25) 100%
+  );
+  pointer-events: none;
+}
+.market-moving-overlay .market-moving-cta {
+  pointer-events: auto;
+}
+.market-moving-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25);
+}
+.market-moving-title {
+  margin: 0;
+  max-width: 18ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 4.5vw, 2.65rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.28);
+}
+/* Match screenshot: lime pill CTA */
+.market-moving-cta {
+  background: #d4f56a !important;
+  color: #111 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+  padding: 0.7rem 1.35rem !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.market-moving-cta:hover {
+  background: #e2ff7a !important;
+  color: #111 !important;
+  transform: translateY(-1px);
+  text-decoration: none !important;
+}
+@media (max-width: 560px) {
+  .market-moving-inner,
+  .market-moving-img {
+    min-height: 200px;
+    border-radius: 16px;
+  }
+  .market-moving-title {
+    max-width: 14ch;
+  }
+}
+
 /* ========== Derivatives desk ========== */
 .deriv-page { padding-top: 0.5rem; }
 .deriv-hero {
