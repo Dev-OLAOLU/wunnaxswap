@@ -75,35 +75,76 @@
     } catch (_) {}
   }
 
+  function stillOnAuthPage() {
+    return /signin|signup/i.test(location.pathname || location.href || "");
+  }
+
+  function navigateHome() {
+    var url = homeUrl();
+    try {
+      window.location.replace(url);
+      return;
+    } catch (_) {}
+    try {
+      window.location.href = url;
+      return;
+    } catch (_) {}
+    try {
+      window.location.assign(HOME);
+    } catch (_) {}
+    try {
+      window.top.location.href = url;
+    } catch (_) {}
+  }
+
   function goHomeAfterSuccess(msg) {
-    if (REDIRECTING) return;
+    if (REDIRECTING) {
+      // Already triggered — keep forcing leave if still stuck on login
+      if (stillOnAuthPage()) navigateHome();
+      return;
+    }
     REDIRECTING = true;
 
     var text = msg || "Login successful";
+    try {
+      localStorage.setItem("wunnax_session", "1");
+      sessionStorage.setItem("wunnax_just_logged_in", "1");
+    } catch (_) {}
+
     showMsg(text + " — opening home…", true);
     showSuccessOverlay(text);
 
-    var url = homeUrl();
-
+    // Immediate navigation (no long delay that feels dormant)
+    setTimeout(navigateHome, 250);
     setTimeout(function () {
-      try {
-        window.location.replace(url);
-      } catch (_) {
-        try {
-          window.location.href = url;
-        } catch (__) {
-          window.location.assign(url);
-        }
-      }
-    }, 400);
-
+      if (stillOnAuthPage()) navigateHome();
+    }, 700);
     setTimeout(function () {
-      if (/signin|signup/i.test(location.pathname || "")) window.location.href = url;
-    }, 1000);
-
+      if (stillOnAuthPage()) navigateHome();
+    }, 1400);
     setTimeout(function () {
-      if (/signin|signup/i.test(location.pathname || "")) window.location.assign(HOME);
-    }, 1800);
+      if (stillOnAuthPage()) window.location.assign(HOME);
+    }, 2200);
+  }
+
+  /** If session/auth already active while on login page → leave immediately */
+  function kickIfAlreadyLoggedIn() {
+    if (!stillOnAuthPage() || REDIRECTING) return;
+    var hasSession = false;
+    try {
+      hasSession = localStorage.getItem("wunnax_session") === "1";
+    } catch (_) {}
+    var hasFirebase = false;
+    try {
+      hasFirebase = !!(window.firebase && firebase.auth && firebase.auth().currentUser);
+    } catch (_) {}
+    var hasBackend = false;
+    try {
+      hasBackend = !!(window.WunnaxBackend && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed());
+    } catch (_) {}
+    if (hasSession || hasFirebase || hasBackend) {
+      goHomeAfterSuccess("Login successful");
+    }
   }
 
   function wrongPasswordMsg(err) {
@@ -406,6 +447,45 @@
           btn.textContent = "Creating account…";
         }
 
+        var finished = false;
+        function ok() {
+          if (finished || REDIRECTING) return;
+          finished = true;
+          try {
+            localStorage.setItem(
+              "wunnax_recovery_" + email,
+              JSON.stringify({
+                email: email,
+                check: btoa(unescape(encodeURIComponent("wx|" + pass))).slice(0, 48),
+                at: Date.now(),
+              })
+            );
+          } catch (_) {}
+          saveSession(email, name, "firebase");
+          goHomeAfterSuccess("Login successful");
+        }
+        function fail(err) {
+          if (finished || REDIRECTING) return;
+          finished = true;
+          console.error("[auth-page] signUp", err);
+          showMsg(wrongPasswordMsg(err), false);
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Create account";
+          }
+        }
+
+        setTimeout(function () {
+          if (finished || REDIRECTING) return;
+          try {
+            if (window.firebase && firebase.auth && firebase.auth().currentUser) {
+              ok();
+              return;
+            }
+          } catch (_) {}
+          fail(Object.assign(new Error("Sign-up timed out. Try again."), { code: "auth/timeout" }));
+        }, 8000);
+
         var p;
         if (window.WunnaxBackend && WunnaxBackend.signUp) {
           try {
@@ -416,36 +496,18 @@
           p = firebaseSignUp(email, pass, name);
         }
 
-        withTimeout(p, 10000, "Sign-up timed out. Try again.")
+        withTimeout(p, 7000, "Sign-up timed out. Try again.")
           .then(function () {
-            // Also store recovery so they can always sign back in on this browser
-            try {
-              localStorage.setItem(
-                "wunnax_recovery_" + email,
-                JSON.stringify({
-                  email: email,
-                  check: btoa(unescape(encodeURIComponent("wx|" + pass))).slice(0, 48),
-                  at: Date.now(),
-                })
-              );
-            } catch (_) {}
-            saveSession(email, name, "firebase");
-            goHomeAfterSuccess("Login successful");
+            ok();
           })
           .catch(function (err) {
-            console.error("[auth-page] signUp", err);
             try {
               if (window.firebase && firebase.auth && firebase.auth().currentUser) {
-                saveSession(email, name, "firebase");
-                goHomeAfterSuccess("Login successful");
+                ok();
                 return;
               }
             } catch (_) {}
-            showMsg(wrongPasswordMsg(err), false);
-            if (btn) {
-              btn.disabled = false;
-              btn.textContent = "Create account";
-            }
+            fail(err);
           });
 
         return false;
@@ -608,6 +670,23 @@
     } catch (_) {}
     // Critical: complete Google OAuth redirect → home (not stuck on login)
     finishGoogleRedirectIfNeeded();
+    // If already logged in, never sit dormant on login/signup
+    kickIfAlreadyLoggedIn();
+    setTimeout(kickIfAlreadyLoggedIn, 400);
+    setTimeout(kickIfAlreadyLoggedIn, 1200);
+    setTimeout(kickIfAlreadyLoggedIn, 2500);
+
+    // Watchdog: if session becomes active while still on auth page, leave
+    var ticks = 0;
+    var watch = setInterval(function () {
+      ticks++;
+      if (REDIRECTING || !stillOnAuthPage()) {
+        clearInterval(watch);
+        return;
+      }
+      kickIfAlreadyLoggedIn();
+      if (ticks > 20) clearInterval(watch); // ~10s
+    }, 500);
   }
 
   if (document.readyState === "loading") {
@@ -616,4 +695,5 @@
     boot();
   }
 })();
+
 

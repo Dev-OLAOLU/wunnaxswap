@@ -346,13 +346,19 @@
         }
 
         if (user) {
-          ensureWallet(user.uid)
+          // Never let wallet setup block auth readiness / login redirect
+          var walletDone = false;
+          function doneWallet() {
+            if (walletDone) return;
+            walletDone = true;
+            finish(settled ? "signed_in" : "ready");
+          }
+          Promise.resolve(ensureWallet(user.uid))
             .catch(function (e) {
               console.warn("[WunnaxBackend] ensureWallet", e);
             })
-            .finally(function () {
-              finish(settled ? "signed_in" : "ready");
-            });
+            .then(doneWallet);
+          setTimeout(doneWallet, 1500);
         } else {
           finish(settled ? "signed_out" : "ready");
         }
