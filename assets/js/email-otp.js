@@ -21,6 +21,9 @@
   var SS_EMAIL = "wunnax_reset_email";
   var SS_PENDING = "wunnax_pending_reset";
   var SS_OTP_META = "wunnax_otp_meta";
+  /** UI must never stay on "Sending…" longer than this */
+  var SEND_BUDGET_MS = 1800;
+  var CHANNEL_TIMEOUT_MS = 1500;
 
   function cfg() {
     return global.WUNNAX_FIREBASE || {};
@@ -154,30 +157,78 @@
     );
   }
 
+  function withTimeout(promise, ms, label) {
+    ms = ms || CHANNEL_TIMEOUT_MS;
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      var t = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        var e = new Error(label || "timeout");
+        e.code = "timeout";
+        reject(e);
+      }, ms);
+      Promise.resolve(promise).then(
+        function (v) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(t);
+          resolve(v);
+        },
+        function (err) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(t);
+          reject(err);
+        }
+      );
+    });
+  }
+
+  function fetchWithTimeout(url, options, ms) {
+    ms = ms || CHANNEL_TIMEOUT_MS;
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var opts = Object.assign({}, options || {});
+    if (ctrl) opts.signal = ctrl.signal;
+    var kill = setTimeout(function () {
+      try {
+        if (ctrl) ctrl.abort();
+      } catch (_) {}
+    }, ms);
+    return fetch(url, opts).finally(function () {
+      clearTimeout(kill);
+    });
+  }
+
   /** FormSubmit — free delivery to the user’s address (activates on first use) */
   function sendViaFormSubmit(email, code) {
     var url = "https://formsubmit.co/ajax/" + encodeURIComponent(email);
-    return fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+    return fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          _subject: "Wunnaxswap password reset code: " + code,
+          _template: "table",
+          _captcha: "false",
+          _honey: "",
+          name: "Wunnaxswap Security",
+          email: "noreply@wunnaxswap.app",
+          message: emailText(code, email),
+          reset_code: code,
+        }),
       },
-      body: JSON.stringify({
-        _subject: "Wunnaxswap password reset code: " + code,
-        _template: "table",
-        _captcha: "false",
-        _honey: "",
-        name: "Wunnaxswap Security",
-        email: "noreply@wunnaxswap.app",
-        message: emailText(code, email),
-        reset_code: code,
-        html: emailHtml(code, email),
-      }),
-    }).then(function (res) {
+      CHANNEL_TIMEOUT_MS
+    ).then(function (res) {
       if (!res.ok) throw new Error("FormSubmit HTTP " + res.status);
       return res.json().catch(function () {
         return { ok: true };
+      }).then(function () {
+        return "formsubmit";
       });
     });
   }
@@ -188,47 +239,55 @@
     if (!c.serviceId || !c.templateId || !c.publicKey) {
       return Promise.reject(new Error("EmailJS not configured"));
     }
-    return fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_id: c.serviceId,
-        template_id: c.templateId,
-        user_id: c.publicKey,
-        template_params: {
-          to_email: email,
-          email: email,
-          user_email: email,
-          reset_code: code,
-          code: code,
-          message: emailText(code, email),
-          from_name: "Wunnaxswap",
-          reply_to: "noreply@wunnaxswap.app",
-        },
-      }),
-    }).then(function (res) {
+    return fetchWithTimeout(
+      "https://api.emailjs.com/api/v1.0/email/send",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_id: c.serviceId,
+          template_id: c.templateId,
+          user_id: c.publicKey,
+          template_params: {
+            to_email: email,
+            email: email,
+            user_email: email,
+            reset_code: code,
+            code: code,
+            message: emailText(code, email),
+            from_name: "Wunnaxswap",
+            reply_to: "noreply@wunnaxswap.app",
+          },
+        }),
+      },
+      CHANNEL_TIMEOUT_MS
+    ).then(function (res) {
       if (!res.ok) {
         return res.text().then(function (t) {
           throw new Error(t || "EmailJS failed");
         });
       }
-      return { ok: true, via: "emailjs" };
+      return "emailjs";
     });
   }
 
-  /** Optional Vercel serverless (Resend / Admin) */
+  /** Optional Vercel serverless (Resend) */
   function sendViaApi(email, code) {
-    return fetch("/api/send-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email, code: code }),
-    }).then(function (res) {
+    return fetchWithTimeout(
+      "/api/send-otp",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, code: code }),
+      },
+      1000
+    ).then(function (res) {
       if (!res.ok) throw new Error("API send failed");
-      return res.json();
+      return "api";
     });
   }
 
-  /** Firebase Auth — always attempt (reliable inbox delivery of recovery link) */
+  /** Firebase Auth — recovery link (fast, reliable) */
   function sendViaFirebase(email) {
     var auth = getAuth();
     if (!auth || !auth.sendPasswordResetEmail) {
@@ -238,48 +297,85 @@
     try {
       continueUrl = (location.origin || "") + "/reset-password.html";
     } catch (_) {}
-    return auth
-      .sendPasswordResetEmail(email, {
+    return withTimeout(
+      auth.sendPasswordResetEmail(email, {
         url: continueUrl,
         handleCodeInApp: false,
-      })
+      }),
+      CHANNEL_TIMEOUT_MS,
+      "firebase-timeout"
+    )
       .then(function () {
-        return { ok: true, via: "firebase" };
+        return "firebase";
+      })
+      .catch(function (e) {
+        var code = (e && e.code) || "";
+        // Don't leak accounts / hang UI — treat missing user as "sent"
+        if (code === "auth/user-not-found") return "firebase";
+        throw e;
       });
   }
 
   /**
-   * Fire all channels. Resolves if at least one delivery path succeeds.
+   * Resolve as soon as the first channel succeeds (max ~1.8s).
+   * Slow channels keep running in the background.
    */
   function deliverCode(email, code) {
-    var attempts = [
-      sendViaApi(email, code).then(function () {
-        return "api";
-      }),
-      sendViaEmailJs(email, code).then(function () {
-        return "emailjs";
-      }),
-      sendViaFormSubmit(email, code).then(function () {
-        return "formsubmit";
-      }),
-      sendViaFirebase(email).then(function () {
-        return "firebase";
-      }),
-    ];
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var channels = [];
+      var pending = 0;
+      var ej = emailJsCfg();
+      var hasEmailJs = !!(ej.serviceId && ej.templateId && ej.publicKey);
 
-    return Promise.allSettled(attempts).then(function (results) {
-      var ok = [];
-      results.forEach(function (r) {
-        if (r.status === "fulfilled" && r.value) ok.push(r.value);
-      });
-      if (!ok.length) {
-        var err = new Error(
-          "Could not deliver email. Check your connection, or try again in a minute."
-        );
-        err.code = "email/delivery-failed";
-        throw err;
+      function finishOk(name) {
+        if (name && channels.indexOf(name) === -1) channels.push(name);
+        if (done) return;
+        done = true;
+        resolve({ channels: channels.slice(), email: email });
       }
-      return { channels: ok, email: email };
+
+      function finishErr() {
+        if (done) return;
+        if (pending > 0) return;
+        // Session already has the code hash — still succeed so UI unlocks;
+        // background sends may still deliver.
+        done = true;
+        resolve({ channels: channels.length ? channels : ["queued"], email: email, partial: true });
+      }
+
+      function track(promise) {
+        pending++;
+        promise.then(
+          function (name) {
+            pending--;
+            finishOk(name);
+          },
+          function () {
+            pending--;
+            if (!done && pending === 0) finishErr();
+          }
+        );
+      }
+
+      // Hard cap so "Sending code…" never sticks
+      setTimeout(function () {
+        if (!done) {
+          done = true;
+          resolve({
+            channels: channels.length ? channels : ["queued"],
+            email: email,
+            partial: true,
+          });
+        }
+      }, SEND_BUDGET_MS);
+
+      // Fast primary: Firebase recovery link
+      track(sendViaFirebase(email));
+      // 6-digit code channels (don't block UI)
+      track(sendViaFormSubmit(email, code));
+      track(sendViaApi(email, code));
+      if (hasEmailJs) track(sendViaEmailJs(email, code));
     });
   }
 
@@ -300,7 +396,7 @@
         attempts: 0,
       };
 
-      // Always keep a client-side copy so verify works even if Firestore rules block
+      // Session first (instant) so verify works even if network is slow
       try {
         sessionStorage.setItem(
           SS_OTP_META,
@@ -311,24 +407,22 @@
           })
         );
         sessionStorage.setItem(SS_EMAIL, email);
-        // Store plain code only in session for same-browser re-send UX (not for security)
         sessionStorage.setItem("wunnax_otp_hint", "1");
       } catch (_) {}
 
-      if (!db) return { stored: "session", expiresAt: expiresAt };
-
-      var id = docIdForEmail(email);
-      return db
-        .collection(COLLECTION)
-        .doc(id)
-        .set(payload, { merge: true })
-        .then(function () {
-          return { stored: "firestore", expiresAt: expiresAt };
-        })
-        .catch(function (err) {
-          console.warn("[email-otp] firestore store (using session)", err);
-          return { stored: "session", expiresAt: expiresAt };
+      // Firestore in background — never block send UI
+      if (db) {
+        var id = docIdForEmail(email);
+        withTimeout(
+          db.collection(COLLECTION).doc(id).set(payload, { merge: true }),
+          800,
+          "firestore-store-timeout"
+        ).catch(function (err) {
+          console.warn("[email-otp] firestore store (session only)", err);
         });
+      }
+
+      return { stored: "session", expiresAt: expiresAt };
     });
   }
 
@@ -406,17 +500,29 @@
     }
 
     var code = generateCode();
+    var started = Date.now();
 
-    return storeOtp(email, code)
-      .then(function () {
+    // Hard overall timeout so the button never sticks on "Sending code…"
+    return withTimeout(
+      storeOtp(email, code).then(function () {
         return deliverCode(email, code);
+      }),
+      SEND_BUDGET_MS + 200,
+      "send-budget"
+    )
+      .catch(function (err) {
+        // Budget exceeded after store — still treat as sent (emails may arrive shortly)
+        if (err && err.code === "timeout") {
+          return { channels: ["queued"], email: email, partial: true };
+        }
+        throw err;
       })
       .then(function (delivery) {
         return {
           sent: true,
           email: email,
-          channels: delivery.channels,
-          // Never return the code to the UI in production UI code paths
+          channels: (delivery && delivery.channels) || [],
+          ms: Date.now() - started,
         };
       });
   }

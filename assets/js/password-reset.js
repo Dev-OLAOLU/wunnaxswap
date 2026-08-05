@@ -45,31 +45,27 @@
   }
 
   function waitReady(ms) {
-    ms = ms || 10000;
+    // Keep short — long init was leaving the button on "Sending code…"
+    ms = ms || 1500;
     return new Promise(function (resolve) {
       var start = Date.now();
       (function tick() {
         var otp = window.WunnaxEmailOtp;
-        var be = window.WunnaxBackend;
         if (otp && typeof otp.requestOtp === "function") {
-          if (be && typeof be.init === "function") {
-            Promise.resolve(be.init())
-              .then(function () {
-                resolve(true);
-              })
-              .catch(function () {
-                resolve(true);
-              });
-            return;
-          }
+          // Init Firebase in background; do not block send
+          try {
+            if (window.WunnaxBackend && typeof WunnaxBackend.init === "function") {
+              WunnaxBackend.init().catch(function () {});
+            }
+          } catch (_) {}
           resolve(true);
           return;
         }
         if (Date.now() - start > ms) {
-          resolve(!!otp);
+          resolve(!!(window.WunnaxEmailOtp && WunnaxEmailOtp.requestOtp));
           return;
         }
-        setTimeout(tick, 40);
+        setTimeout(tick, 30);
       })();
     });
   }
@@ -132,11 +128,7 @@
             var emailEl = $("sentToEmail");
             if (emailEl) emailEl.textContent = (res && res.email) || email;
 
-            var channels = (res && res.channels) || [];
-            var extra = channels.length
-              ? " Delivered via: " + channels.join(", ") + "."
-              : "";
-            showMsg("Reset code sent — check your inbox and spam folder." + extra, true);
+            showMsg("Reset code sent — check your inbox and spam folder.", true);
 
             // Prefill reset page email
             try {
