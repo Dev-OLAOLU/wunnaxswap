@@ -258,8 +258,12 @@
             }
             return withTimeout(p, 12000, "Sign-in timed out. Check connection and try again.");
           })
-          .then(function () {
-            saveSession(email, email.split("@")[0]);
+          .then(function (res) {
+            var name =
+              (res && res.profile && res.profile.name) ||
+              (res && res.user && (res.user.displayName || res.user.email || email).split("@")[0]) ||
+              email.split("@")[0];
+            saveSession(email, name);
             goHomeAfterSuccess("Login successful");
           })
           .catch(function (err) {
