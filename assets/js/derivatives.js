@@ -145,6 +145,35 @@
     });
   }
 
+  function iconHtml(symbol, size) {
+    if (window.WUNNA && typeof WUNNA.derivIconHtml === "function") {
+      return WUNNA.derivIconHtml(symbol, size || 28);
+    }
+    var src =
+      (window.WUNNA && WUNNA.derivIconUrl ? WUNNA.derivIconUrl(symbol) : "assets/img/deriv-icons/" + symbol + ".svg");
+    return (
+      '<img class="deriv-mkt-icon" src="' +
+      src +
+      '" width="' +
+      (size || 28) +
+      '" height="' +
+      (size || 28) +
+      '" alt="" loading="lazy" />'
+    );
+  }
+
+  function classIconHtml(classId) {
+    var src =
+      window.WUNNA && WUNNA.derivClassIconUrl
+        ? WUNNA.derivClassIconUrl(classId)
+        : "assets/img/deriv-icons/class_" + classId + ".svg";
+    return (
+      '<img class="deriv-mkt-icon deriv-mkt-icon--tab" src="' +
+      src +
+      '" width="18" height="18" alt="" loading="lazy" />'
+    );
+  }
+
   function renderClassTabs() {
     var el = $("derivClassTabs");
     if (!el || !WUNNA.DERIV_CLASSES) return;
@@ -155,8 +184,10 @@
         '" data-class="' +
         c.id +
         '">' +
+        classIconHtml(c.id) +
+        "<span>" +
         c.label +
-        "</button>"
+        "</span></button>"
       );
     }).join("");
     el.querySelectorAll("[data-class]").forEach(function (btn) {
@@ -187,6 +218,7 @@
           '" role="option" aria-selected="' +
           (d.symbol === state.symbol) +
           '">' +
+          iconHtml(d.symbol, 30) +
           '<span class="deriv-row-sym"><strong>' +
           d.symbol +
           '</strong><span class="muted">' +
@@ -224,7 +256,9 @@
       .map(function (d) {
         var up = d.change >= 0;
         return (
-          '<div class="deriv-pulse-row"><span>' +
+          '<div class="deriv-pulse-row">' +
+          iconHtml(d.symbol, 22) +
+          "<span>" +
           d.symbol +
           '</span><span class="mono ' +
           (up ? "up" : "down") +
@@ -240,6 +274,12 @@
   function updateHeader() {
     var d = current();
     if (!d) return;
+    var logo = $("derivMarketIcon");
+    if (logo) {
+      logo.src = window.WUNNA && WUNNA.derivIconUrl ? WUNNA.derivIconUrl(d.symbol) : "assets/img/deriv-icons/" + d.symbol + ".svg";
+      logo.alt = d.symbol;
+      logo.hidden = false;
+    }
     if ($("derivSymbol")) $("derivSymbol").textContent = d.symbol;
     if ($("derivName")) $("derivName").textContent = d.name;
     if ($("derivProduct")) $("derivProduct").textContent = d.product || "PERP";

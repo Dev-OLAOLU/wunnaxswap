@@ -1854,23 +1854,59 @@ body.wx-authed #marketMovingBand {
   background: var(--panel);
   color: var(--muted);
   border-radius: 999px;
-  padding: 0.4rem 0.85rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.45rem;
   font-weight: 700;
   font-size: 0.82rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .deriv-tab.is-on {
   background: var(--grad-btn);
   color: #fff;
   border-color: transparent;
 }
+.deriv-tab.is-on .deriv-mkt-icon {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
 .deriv-pulse { margin-top: 0.65rem; display: grid; gap: 0.35rem; }
 .deriv-pulse-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.45rem;
   font-size: 0.88rem;
   padding: 0.25rem 0;
   border-bottom: 1px solid var(--line);
+}
+.deriv-pulse-row > span:nth-child(2) {
+  flex: 1;
+  font-weight: 700;
+}
+
+/* Deriv-style market icons (quill Markets set) */
+.deriv-mkt-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f3f4f6;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.06);
+  display: block;
+}
+.deriv-mkt-icon--lg {
+  width: 36px;
+  height: 36px;
+}
+.deriv-mkt-icon--tab {
+  width: 18px;
+  height: 18px;
+}
+.deriv-mkt-icon.is-missing {
+  opacity: 0.35;
+  background: #e5e7eb;
 }
 .deriv-shell {
   display: grid;
@@ -1896,14 +1932,14 @@ body.wx-authed #marketMovingBand {
 .deriv-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 0.35rem;
+  grid-template-columns: 30px 1fr auto auto;
+  gap: 0.4rem;
   align-items: center;
   text-align: left;
   border: 1px solid transparent;
   background: transparent;
   border-radius: 10px;
-  padding: 0.5rem 0.45rem;
+  padding: 0.45rem 0.4rem;
   cursor: pointer;
   font-size: 0.8rem;
   color: var(--text);
@@ -1912,8 +1948,15 @@ body.wx-authed #marketMovingBand {
   background: var(--panel-2);
   border-color: var(--line);
 }
-.deriv-row-sym { display: flex; flex-direction: column; gap: 0.05rem; }
+.deriv-row .deriv-mkt-icon {
+  width: 30px;
+  height: 30px;
+}
+.deriv-row-sym { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; }
 .deriv-row-sym strong { font-size: 0.84rem; }
+.deriv-shell {
+  grid-template-columns: 280px 1fr 300px;
+}
 .deriv-pair-head {
   display: flex;
   justify-content: space-between;

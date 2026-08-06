@@ -331,3 +331,37 @@ WUNNA.derivBySymbol = function (sym) {
     return d.symbol === sym;
   });
 };
+
+/**
+ * Deriv-style market icons (from @deriv/quill-icons Markets set).
+ * Files live in /assets/img/deriv-icons/{SYMBOL}.svg
+ */
+WUNNA.DERIV_ICON_BASE = "assets/img/deriv-icons/";
+
+WUNNA.derivIconUrl = function (symbol) {
+  var s = String(symbol || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9_]/g, "");
+  if (!s) return WUNNA.DERIV_ICON_BASE + "class_all.svg";
+  return WUNNA.DERIV_ICON_BASE + encodeURIComponent(s) + ".svg";
+};
+
+WUNNA.derivClassIconUrl = function (classId) {
+  var id = String(classId || "all").toLowerCase();
+  return WUNNA.DERIV_ICON_BASE + "class_" + encodeURIComponent(id) + ".svg";
+};
+
+/** Inline img tag for list / header use */
+WUNNA.derivIconHtml = function (symbol, size) {
+  size = size || 28;
+  var src = WUNNA.derivIconUrl(symbol);
+  return (
+    '<img class="deriv-mkt-icon" src="' +
+    src +
+    '" width="' +
+    size +
+    '" height="' +
+    size +
+    '" alt="" loading="lazy" decoding="async" onerror="this.classList.add(\'is-missing\')" />'
+  );
+};
