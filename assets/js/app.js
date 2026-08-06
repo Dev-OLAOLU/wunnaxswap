@@ -288,17 +288,17 @@
     } catch (_) {}
     return (
       '<label class="wx-lang-wrap wx-lang-wrap--compact">' +
-      '<select class="wx-lang-select wx-lang-select--compact" data-lang-select aria-label="Language">' +
-      '<option value="en">English</option>' +
-      '<option value="es">Español</option>' +
-      '<option value="fr">Français</option>' +
-      '<option value="zh">中文</option>' +
-      '<option value="ar">العربية</option>' +
-      '<option value="hi">हिन्दी</option>' +
-      '<option value="pt">Português</option>' +
-      '<option value="de">Deutsch</option>' +
-      '<option value="ja">日本語</option>' +
-      '<option value="ko">한국어</option>' +
+      '<select class="wx-lang-select wx-lang-select--compact" data-lang-select aria-label="Language" title="Language">' +
+      '<option value="en">EN</option>' +
+      '<option value="es">ES</option>' +
+      '<option value="fr">FR</option>' +
+      '<option value="zh">ZH</option>' +
+      '<option value="ar">AR</option>' +
+      '<option value="hi">HI</option>' +
+      '<option value="pt">PT</option>' +
+      '<option value="de">DE</option>' +
+      '<option value="ja">JA</option>' +
+      '<option value="ko">KO</option>' +
       "</select></label>"
     );
   }

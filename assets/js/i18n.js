@@ -720,28 +720,30 @@
     opts = opts || {};
     className = className || "wx-lang-select";
     var compact = !!opts.compact || /compact|top/.test(className);
+    // Always abbreviation-only for space; full name lives in title/aria on options
     var wrapClass = "wx-lang-wrap" + (compact ? " wx-lang-wrap--compact" : "");
     var html = '<label class="' + wrapClass + '">';
-    if (!compact) {
-      html += '<span class="wx-lang-caption" data-i18n="lang">' + t("lang") + "</span>";
-    }
     html +=
       '<select class="' +
       className +
       '" data-lang-select aria-label="' +
       t("lang") +
+      '" title="' +
+      t("lang") +
       '">';
     LANGS.forEach(function (L) {
+      var abbr = L.code.toUpperCase();
+      var full = L.native || L.label || abbr;
       html +=
         '<option value="' +
         L.code +
         '"' +
         (L.code === current ? " selected" : "") +
-        ">" +
-        L.native +
-        " (" +
-        L.code.toUpperCase() +
-        ")</option>";
+        ' title="' +
+        full +
+        '">' +
+        abbr +
+        "</option>";
     });
     html += "</select></label>";
     return html;

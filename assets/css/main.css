@@ -2093,17 +2093,20 @@ table.data tr:hover td { background: rgba(84, 122, 253, 0.05); }
   appearance: none;
   -webkit-appearance: none;
   font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--text, #1a1a1a);
   background: var(--panel, #fff)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23547afd' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E")
-    no-repeat right 0.55rem center / 10px;
+    no-repeat right 0.4rem center / 9px;
   border: 1px solid var(--line, #e4e2dd);
   border-radius: 999px;
-  padding: 0.38rem 1.6rem 0.38rem 0.75rem;
+  padding: 0.32rem 1.35rem 0.32rem 0.55rem;
   cursor: pointer;
-  max-width: 11.5rem;
+  width: auto;
+  min-width: 3.1rem;
+  max-width: 4.25rem;
   line-height: 1.2;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -2115,9 +2118,10 @@ table.data tr:hover td { background: rgba(84, 122, 253, 0.05); }
 }
 .wx-lang-select--compact,
 .wx-lang-select--top {
-  max-width: 9.5rem;
-  padding: 0.32rem 1.45rem 0.32rem 0.65rem;
-  font-size: 0.76rem;
+  max-width: 3.75rem;
+  min-width: 3rem;
+  padding: 0.3rem 1.25rem 0.3rem 0.5rem;
+  font-size: 0.74rem;
   background-color: rgba(246, 245, 243, 0.9);
 }
 .wx-lang-wrap--compact .wx-lang-caption,
@@ -2136,8 +2140,8 @@ table.data tr:hover td { background: rgba(84, 122, 253, 0.05); }
   width: 100%;
 }
 .mobile-lang .wx-lang-select {
-  width: 100%;
-  max-width: none;
+  width: auto;
+  max-width: 4.25rem;
 }
 .auth-lang-row {
   display: flex;
