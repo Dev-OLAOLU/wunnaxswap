@@ -155,6 +155,40 @@
       document.documentElement.classList.toggle("wx-authed", authed);
       document.body.classList.toggle("wx-authed", authed);
     } catch (_) {}
+    // Market-moving promo: only for guests
+    try {
+      updateMarketMovingBanner(authed);
+    } catch (_) {}
+  }
+
+  /**
+   * Hide the “market’s moving” landing banner after login.
+   * @param {boolean} [authed]
+   */
+  function updateMarketMovingBanner(authed) {
+    if (typeof authed !== "boolean") authed = isAuthed();
+    var band = document.getElementById("marketMovingBand");
+    if (!band) {
+      band = document.querySelector(".market-moving-band");
+    }
+    if (!band) return;
+    if (authed) {
+      band.hidden = true;
+      band.setAttribute("hidden", "");
+      band.setAttribute("aria-hidden", "true");
+      band.style.display = "none";
+      try {
+        band.classList.add("is-hidden-authed");
+      } catch (_) {}
+    } else {
+      band.hidden = false;
+      band.removeAttribute("hidden");
+      band.removeAttribute("aria-hidden");
+      band.style.display = "";
+      try {
+        band.classList.remove("is-hidden-authed");
+      } catch (_) {}
+    }
   }
 
   function clearLocalAuth() {
@@ -2847,6 +2881,9 @@
     toast: toast,
     getWallet: getWallet,
     getUser: getUser,
+    isAuthed: isAuthed,
+    updateLandingAuthUi: updateLandingAuthUi,
+    updateMarketMovingBanner: updateMarketMovingBanner,
     money: money,
     backendOn: backendOn,
     backendErr: backendErr,
