@@ -1,44 +1,50 @@
 /**
- * Look-alike market widget on the Deriv-style login page.
- * Lightweight tickers + sparkline (no full app boot required).
+ * Arbitrage-themed widget on the login showcase.
+ * Shows multi-venue spread routes (buy venue → sell venue) — core product story.
  */
 (function () {
   "use strict";
 
-  var ticks = [
-    { s: "EURUSD", p: 1.0864, c: 0.12 },
-    { s: "R_50", p: 210.55, c: 0.41 },
-    { s: "XAUUSD", p: 2348.6, c: 0.28 },
-    { s: "BTCUSD", p: 65044, c: 0.8 },
-    { s: "NAS100", p: 18420, c: 0.62 },
-    { s: "BOOM1K", p: 11200, c: 0.55 },
+  // Simulated multi-exchange arb routes
+  var routes = [
+    { coin: "BTC", buy: "Binance", sell: "OKX", buyPx: 65020, sellPx: 65180, net: 0.18 },
+    { coin: "ETH", buy: "Kraken", sell: "Coinbase", buyPx: 1942.1, sellPx: 1949.6, net: 0.24 },
+    { coin: "SOL", buy: "Gate.io", sell: "Binance", buyPx: 75.9, sellPx: 76.45, net: 0.31 },
+    { coin: "XRP", buy: "Bitget", sell: "KuCoin", buyPx: 1.094, sellPx: 1.102, net: 0.22 },
+    { coin: "BNB", buy: "OKX", sell: "Bybit", buyPx: 570.2, sellPx: 572.8, net: 0.15 },
+    { coin: "DOGE", buy: "HTX", sell: "Binance", buyPx: 0.0718, sellPx: 0.0726, net: 0.41 },
   ];
 
   function money(n) {
-    if (n >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    if (n >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
     if (n >= 10) return n.toFixed(2);
-    if (n >= 1) return n.toFixed(4);
-    return n.toFixed(5);
+    if (n >= 1) return n.toFixed(3);
+    return n.toFixed(4);
   }
 
   function renderTicks() {
     var el = document.getElementById("loginWidgetTicks");
     if (!el) return;
-    el.innerHTML = ticks
-      .map(function (t) {
-        var up = t.c >= 0;
+    el.innerHTML = routes
+      .map(function (r) {
         return (
-          '<div class="dmw-tick">' +
-          "<strong>" +
-          t.s +
-          '</strong><span class="mono">' +
-          money(t.p) +
-          '</span><span class="mono ' +
-          (up ? "up" : "down") +
-          '">' +
-          (up ? "+" : "") +
-          t.c.toFixed(2) +
-          "%</span></div>"
+          '<div class="dmw-tick dmw-tick--arb">' +
+          '<span class="dmw-arb-coin"><strong>' +
+          r.coin +
+          '</strong><span class="dmw-arb-route">' +
+          r.buy +
+          " → " +
+          r.sell +
+          "</span></span>" +
+          '<span class="mono dmw-arb-spread up">+' +
+          r.net.toFixed(2) +
+          "%</span>" +
+          '<span class="mono muted dmw-arb-px">' +
+          money(r.buyPx) +
+          " / " +
+          money(r.sellPx) +
+          "</span>" +
+          "</div>"
         );
       })
       .join("");
@@ -56,7 +62,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    // soft grid
+    // grid
     ctx.strokeStyle = "rgba(255,255,255,0.06)";
     ctx.lineWidth = 1;
     for (var g = 1; g < 4; g++) {
@@ -67,48 +73,65 @@
       ctx.stroke();
     }
 
-    var pts = [];
-    var p = 100;
-    for (var i = 0; i < 48; i++) {
-      p *= 1 + (Math.random() - 0.48) * 0.02;
-      pts.push(p);
+    // Two lines: buy venue (lower) vs sell venue (higher) — visual “spread”
+    function path(base, amp, color, fill) {
+      var pts = [];
+      var p = base;
+      for (var i = 0; i < 48; i++) {
+        p *= 1 + (Math.random() - 0.48) * amp;
+        pts.push(p);
+      }
+      var min = Math.min.apply(null, pts) * 0.998;
+      var max = Math.max.apply(null, pts) * 1.002;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      pts.forEach(function (v, i) {
+        var x = (i / (pts.length - 1)) * w;
+        var y = h - ((v - min) / (max - min || 1)) * (h - 20) - 10;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      if (fill) {
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        var gr = ctx.createLinearGradient(0, 0, 0, h);
+        gr.addColorStop(0, "rgba(52,211,153,0.2)");
+        gr.addColorStop(1, "rgba(52,211,153,0)");
+        ctx.fillStyle = gr;
+        ctx.fill();
+      }
+      return pts;
     }
-    var min = Math.min.apply(null, pts);
-    var max = Math.max.apply(null, pts);
-    var grad = ctx.createLinearGradient(0, 0, w, 0);
-    grad.addColorStop(0, "#6786ed");
-    grad.addColorStop(0.5, "#547afd");
-    grad.addColorStop(1, "#a7f3d0");
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = 2.2;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    pts.forEach(function (v, i) {
-      var x = (i / (pts.length - 1)) * w;
-      var y = h - ((v - min) / (max - min || 1)) * (h - 16) - 8;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
 
-    // fill under curve
-    var lastX = w;
-    var lastY = h - ((pts[pts.length - 1] - min) / (max - min || 1)) * (h - 16) - 8;
-    ctx.lineTo(lastX, h);
-    ctx.lineTo(0, h);
-    ctx.closePath();
-    var fill = ctx.createLinearGradient(0, 0, 0, h);
-    fill.addColorStop(0, "rgba(84,122,253,0.28)");
-    fill.addColorStop(1, "rgba(84,122,253,0)");
-    ctx.fillStyle = fill;
-    ctx.fill();
+    path(100, 0.012, "rgba(167,190,255,0.85)", false); // buy (cooler)
+    path(101.2, 0.012, "#6ee7b7", true); // sell (green spread)
+
+    // label chips
+    ctx.font = "600 10px Inter, system-ui, sans-serif";
+    ctx.fillStyle = "rgba(167,190,255,0.9)";
+    ctx.fillText("Buy venue", 8, 14);
+    ctx.fillStyle = "rgba(110,231,183,0.95)";
+    ctx.fillText("Sell venue", 72, 14);
   }
 
   function tick() {
-    ticks.forEach(function (t) {
-      var vol = t.p * (0.0002 + Math.random() * 0.0005);
-      t.p = Math.max(0.0001, t.p + (Math.random() > 0.5 ? 1 : -1) * vol);
-      t.c = +(t.c + (Math.random() - 0.5) * 0.06).toFixed(2);
+    routes.forEach(function (r) {
+      var mid = (r.buyPx + r.sellPx) / 2;
+      var vol = mid * (0.00015 + Math.random() * 0.0004);
+      r.buyPx = Math.max(0.00001, r.buyPx + (Math.random() - 0.52) * vol);
+      r.sellPx = Math.max(r.buyPx * 1.0005, r.sellPx + (Math.random() - 0.48) * vol);
+      r.net = +(((r.sellPx - r.buyPx) / r.buyPx) * 100).toFixed(2);
+      if (r.net < 0.05) {
+        r.sellPx = r.buyPx * (1.001 + Math.random() * 0.004);
+        r.net = +(((r.sellPx - r.buyPx) / r.buyPx) * 100).toFixed(2);
+      }
+    });
+    // Keep strongest opportunities on top
+    routes.sort(function (a, b) {
+      return b.net - a.net;
     });
     renderTicks();
   }
@@ -138,7 +161,7 @@
     drawSpark();
     wireAsk();
     setInterval(tick, 2000);
-    setInterval(drawSpark, 4000);
+    setInterval(drawSpark, 4500);
     window.addEventListener("resize", drawSpark);
   }
 

@@ -601,6 +601,34 @@ body.auth-page--deriv {
   color: rgba(246, 245, 243, 0.92);
 }
 .dmw-tick strong { font-size: 0.78rem; letter-spacing: 0.02em; }
+/* Arbitrage route rows on login widget */
+.dmw-tick--arb {
+  grid-template-columns: 1.4fr auto;
+  grid-template-rows: auto auto;
+  gap: 0.15rem 0.5rem;
+}
+.dmw-arb-coin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  grid-row: 1 / 3;
+}
+.dmw-arb-route {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(246, 245, 243, 0.55);
+  letter-spacing: 0.01em;
+}
+.dmw-arb-spread {
+  justify-self: end;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+.dmw-arb-px {
+  justify-self: end;
+  font-size: 0.68rem;
+  grid-column: 2;
+}
 .dmw-foot {
   display: flex;
   justify-content: space-between;

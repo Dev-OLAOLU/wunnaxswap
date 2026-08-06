@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/main.css?v=dlogin1" />
+  <link rel="stylesheet" href="assets/css/main.css?v=dlogin2" />
 </head>
 <body class="auth-page auth-page--deriv">
 
@@ -24,28 +24,29 @@
 </header>
 
 <div class="deriv-login-shell">
-  <!-- Left: brand + look-alike market widget -->
+  <!-- Left: arbitrage story + multi-venue spread widget -->
   <aside class="deriv-login-showcase" aria-hidden="false">
     <div class="deriv-login-showcase-inner">
-      <p class="deriv-login-tagline">Trading for anyone.<br />Anywhere. Anytime.</p>
-      <p class="deriv-login-sub">Crypto, FX, indices, commodities &amp; options-style markets — one account.</p>
+      <p class="deriv-login-tagline">Find cheaper buys.<br />Stronger sells.</p>
+      <p class="deriv-login-sub">
+        Wunnaxswap is built for <strong>arbitrage</strong> — scan multi-venue quotes, spot spreads, and route trades where the price works harder for you.
+      </p>
 
-      <!-- Look-alike trading widget (inspired by Deriv dashboard login) -->
       <div class="deriv-market-widget" id="loginMarketWidget">
         <div class="dmw-head">
-          <span class="dmw-live"><i></i> Markets live</span>
-          <span class="dmw-tab is-on">Options</span>
-          <span class="dmw-tab">CFDs</span>
+          <span class="dmw-live"><i></i> Arbitrage scanner</span>
+          <span class="dmw-tab is-on">Spreads</span>
+          <span class="dmw-tab">Routes</span>
         </div>
         <div class="dmw-chart" id="loginWidgetChart">
-          <canvas id="loginSpark" width="640" height="200" aria-label="Market sparkline"></canvas>
+          <canvas id="loginSpark" width="640" height="200" aria-label="Spread opportunity chart"></canvas>
         </div>
         <div class="dmw-ticks" id="loginWidgetTicks">
-          <!-- filled by script -->
+          <!-- filled by script: coin · buy venue · sell venue · net -->
         </div>
         <div class="dmw-foot">
-          <span>Rise / Fall · Multipliers · Perps</span>
-          <a href="/derivatives.html">Open desk →</a>
+          <span>Buy low · Sell high · Multi-exchange</span>
+          <a href="/arbitrage.html">Open scanner →</a>
         </div>
       </div>
     </div>
@@ -56,7 +57,7 @@
     <div class="deriv-login-card card">
       <a class="brand auth-brand deriv-login-logo-mobile" href="/index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
       <h1 class="deriv-welcome">Welcome back</h1>
-      <p class="muted deriv-welcome-sub">Log in to your Wunnaxswap account</p>
+      <p class="muted deriv-welcome-sub">Log in to unlock the arbitrage scanner and trading tools</p>
 
       <div class="deriv-social-stack">
         <button type="button" class="btn btn-social google" id="btnGoogle" data-provider="google">
@@ -100,7 +101,7 @@
     <strong>Support</strong>
     <button type="button" class="deriv-ask-close" id="derivAskClose" aria-label="Close">×</button>
   </div>
-  <p class="muted" style="font-size:.88rem;margin:0 0 .75rem">Need help signing in? Use email login, Google, or reset your password.</p>
+  <p class="muted" style="font-size:.88rem;margin:0 0 .75rem">Need help signing in? After login you can run the multi-venue arbitrage scanner. Use email, Google, or reset password.</p>
   <a class="btn btn-soft btn-sm" href="/forgot-password.html" style="width:100%;box-sizing:border-box;margin-bottom:.4rem">Reset password</a>
   <a class="btn btn-ghost btn-sm" href="/contact.html" style="width:100%;box-sizing:border-box">Contact</a>
 </div>
@@ -108,9 +109,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="/assets/js/firebase-config.js?v=dlogin1"></script>
-<script src="/assets/js/backend.js?v=dlogin1"></script>
-<script src="/assets/js/auth-page.js?v=dlogin1"></script>
-<script src="/assets/js/login-widget.js?v=dlogin1"></script>
+<script src="/assets/js/firebase-config.js?v=dlogin2"></script>
+<script src="/assets/js/backend.js?v=dlogin2"></script>
+<script src="/assets/js/auth-page.js?v=dlogin2"></script>
+<script src="/assets/js/login-widget.js?v=dlogin2"></script>
 </body>
 </html>
