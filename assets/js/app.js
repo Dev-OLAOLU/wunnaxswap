@@ -1375,6 +1375,23 @@
       }
     }
 
+    function ensureTradeChart() {
+      const host = $("#priceChart");
+      if (!host) return;
+      if (chart) return;
+      if (window.WunnaxTvChart) {
+        chart = WunnaxTvChart.mount(host, {
+          symbol: base,
+          interval: "15m",
+          height: 420,
+          price: mid(),
+          volatility: 0.004,
+        });
+      } else if (window.WunnaChart && host.tagName === "CANVAS") {
+        chart = new WunnaChart(host, { price: mid(), volatility: 0.004, count: 90 });
+      }
+    }
+
     function setPair(sym) {
       base = sym;
       const a = asset();
@@ -1384,9 +1401,10 @@
         logo.src = WUNNA.logoUrl(sym);
         logo.alt = sym;
       }
-      if (chart) chart.reset(a.price, 0.004);
-      else if ($("#priceChart") && window.WunnaChart) {
-        chart = new WunnaChart($("#priceChart"), { price: a.price, volatility: 0.004, count: 90 });
+      ensureTradeChart();
+      if (chart) {
+        if (chart.setSymbol) chart.setSymbol(sym, a.price);
+        else if (chart.reset) chart.reset(a.price, 0.004);
       }
       drawAll();
       renderPairList();
@@ -1460,7 +1478,9 @@
     function drawAll() {
       drawStats();
       drawBook();
-      if (chart) chart.setPrice(mid());
+      // Live price ticks only update canvas fallback; TV uses real market data
+      if (chart && chart.setPrice && chart.isTv && !chart.isTv()) chart.setPrice(mid());
+      else if (chart && chart.setPrice && !chart.isTv) chart.setPrice(mid());
     }
 
     // Mode switch
@@ -2653,40 +2673,51 @@
       document.addEventListener("wunna:prices", drawHeat);
     }
 
-    // technical — realistic candles
+    // technical — TradingView Advanced Chart (+ canvas fallback)
     const techChart = $("#techChart");
-    if (techChart && window.WunnaChart) {
+    if (techChart) {
       const sel = $("#techAsset");
       if (sel) {
         sel.innerHTML = WUNNA.ASSETS.filter(function (a) { return a.category === "crypto"; })
           .map(function (a) { return "<option value=\"" + a.symbol + "\">" + a.symbol + " — " + a.name + "</option>"; }).join("");
       }
-      let tech = new WunnaChart(techChart, {
-        price: (assetBySymbol((sel && sel.value) || "BTC") || {}).price || 100,
-        volatility: 0.0045,
-        count: 100,
-      });
+      let tech = null;
+      const startSym = (sel && sel.value) || "BTC";
+      const startPrice = (assetBySymbol(startSym) || {}).price || 100;
+      if (window.WunnaxTvChart) {
+        tech = WunnaxTvChart.mount(techChart, {
+          symbol: startSym,
+          interval: "15m",
+          height: 400,
+          price: startPrice,
+          volatility: 0.0045,
+        });
+      } else if (window.WunnaChart && techChart.tagName === "CANVAS") {
+        tech = new WunnaChart(techChart, {
+          price: startPrice,
+          volatility: 0.0045,
+          count: 100,
+        });
+      }
       function updateTechMeta() {
         const a = assetBySymbol((sel && sel.value) || "BTC");
+        if (!a) return;
         if ($("#techPrice")) $("#techPrice").textContent = "$" + money(a.price);
-        const last = tech.candles[tech.candles.length - 1];
-        const prev = tech.candles[tech.candles.length - 15] || last;
-        const mom = ((last.c - prev.c) / prev.c) * 100;
-        if ($("#techRsi")) $("#techRsi").textContent = (50 + mom * 4).toFixed(1);
+        const ch = a.change || 0;
+        if ($("#techRsi")) $("#techRsi").textContent = (50 + ch * 1.8).toFixed(1);
         if ($("#techSignal")) {
-          const r = 50 + mom * 4;
+          const r = 50 + ch * 1.8;
           $("#techSignal").textContent = r > 70 ? "Overbought" : r < 30 ? "Oversold" : "Neutral";
         }
       }
       updateTechMeta();
       sel && sel.addEventListener("change", function () {
         const a = assetBySymbol(sel.value);
-        tech.reset(a.price, 0.0045);
+        if (tech && tech.setSymbol) tech.setSymbol(sel.value, a && a.price);
+        else if (tech && tech.reset) tech.reset(a.price, 0.0045);
         updateTechMeta();
       });
       document.addEventListener("wunna:prices", function () {
-        const a = assetBySymbol((sel && sel.value) || "BTC");
-        tech.setPrice(a.price);
         updateTechMeta();
       });
     }

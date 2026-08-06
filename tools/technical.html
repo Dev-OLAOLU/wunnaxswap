@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../assets/css/main.css?v=markos1" />
+  <link rel="stylesheet" href="../assets/css/main.css?v=tv1" />
 
   
 </head>
@@ -41,8 +41,19 @@
     <div class="card kpi"><strong id="techSignal">—</strong><span>Signal</span></div>
   </div>
 </div>
-<div class="chart-box" style="height:340px"><canvas id="techChart"></canvas></div>
-<p class="muted" style="font-size:.82rem;margin-top:.6rem">Purple = price · Cyan = MA(10). Indicators are simplified for demo education.</p>
+<div class="card wx-chart-shell" style="padding:0.85rem;margin-bottom:0.5rem">
+  <div class="chart-toolbar wx-chart-bar" style="margin-bottom:0.5rem">
+    <span class="muted wx-chart-credit" style="font-size:.78rem">TradingView · technical chart</span>
+    <div class="wx-chart-actions">
+      <button type="button" class="wx-chart-btn" data-chart-action="minimize" title="Minimize chart" aria-label="Minimize">−</button>
+      <button type="button" class="wx-chart-btn" data-chart-action="expand" title="Expand chart" aria-label="Expand">⛶</button>
+    </div>
+  </div>
+  <div class="wx-chart-stage chart-box" data-chart-stage style="height:400px">
+    <div id="techChart" class="tv-host" aria-label="TradingView technical chart"></div>
+  </div>
+</div>
+<p class="muted" style="font-size:.82rem;margin-top:.6rem">Powered by TradingView Advanced Chart. Expand for full-screen analysis.</p>
 
     </section>
   </div>
@@ -54,7 +65,8 @@
   <script src="../assets/js/backend.js"></script>
 <script src="../assets/js/data.js"></script>
   <script src="../assets/js/charts.js"></script>
+  <script src="../assets/js/tv-chart.js?v=tv1"></script>
   <script src="../assets/js/i18n.js?v=i18n1"></script>
-<script src="../assets/js/app.js"></script>
+  <script src="../assets/js/app.js?v=tv1"></script>
 </body>
 </html>

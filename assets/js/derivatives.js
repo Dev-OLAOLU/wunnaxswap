@@ -389,16 +389,42 @@
   }
 
   var chartInstance = null;
+  var chartSymbol = null;
+  var chartTf = null;
 
   function renderChart() {
-    var canvas = $("derivChart");
+    var host = $("derivChart");
     var d = current();
-    if (!canvas || !d) return;
+    if (!host || !d) return;
+    var vol = d.class === "forex" ? 0.0012 : d.class === "index" ? 0.0025 : 0.004;
     try {
-      if (window.WunnaChart) {
-        var vol = d.class === "forex" ? 0.0012 : d.class === "index" ? 0.0025 : 0.004;
+      if (window.WunnaxTvChart) {
         if (!chartInstance) {
-          chartInstance = new WunnaChart(canvas, {
+          chartInstance = WunnaxTvChart.mount(host, {
+            symbol: d.symbol,
+            interval: state.tf || "15m",
+            height: 400,
+            price: d.price,
+            volatility: vol,
+          });
+          chartSymbol = d.symbol;
+          chartTf = state.tf;
+          return;
+        }
+        if (chartSymbol !== d.symbol) {
+          chartSymbol = d.symbol;
+          if (chartInstance.setSymbol) chartInstance.setSymbol(d.symbol, d.price);
+        } else if (chartTf !== state.tf) {
+          chartTf = state.tf;
+          if (chartInstance.setTimeframe) chartInstance.setTimeframe(state.tf);
+        } else if (chartInstance.isTv && !chartInstance.isTv() && chartInstance.setPrice) {
+          chartInstance.setPrice(d.price);
+        }
+        return;
+      }
+      if (window.WunnaChart && host.tagName === "CANVAS") {
+        if (!chartInstance) {
+          chartInstance = new WunnaChart(host, {
             price: d.price,
             volatility: vol,
             count: 90,
@@ -413,23 +439,6 @@
     } catch (e) {
       console.warn("[deriv] chart", e);
     }
-    // Fallback sparkline
-    try {
-      var ctx = canvas.getContext("2d");
-      var w = (canvas.width = (canvas.clientWidth || 300) * 2);
-      var h = (canvas.height = (canvas.clientHeight || 180) * 2);
-      ctx.clearRect(0, 0, w, h);
-      ctx.strokeStyle = d.change >= 0 ? "#0d9f6e" : "#e11d48";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      for (var i = 0; i < 40; i++) {
-        var x = (i / 39) * w;
-        var y = h * 0.5 - Math.sin(i / 4 + d.price) * h * 0.2;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    } catch (_) {}
   }
 
   function renderPositions() {
@@ -1000,10 +1009,15 @@
       applyLiveTick(t.symbol, t.quote);
       if (t.symbol === state.symbol) {
         updateHeader();
+        // TV charts stream real market data; only push ticks into canvas fallback
         if (chartInstance && chartInstance.setPrice) {
           try {
-            chartInstance.setPrice(t.quote);
-            if (chartInstance.draw) chartInstance.draw();
+            if (chartInstance.isTv && chartInstance.isTv()) {
+              /* TradingView handles live updates */
+            } else {
+              chartInstance.setPrice(t.quote);
+              if (chartInstance.draw) chartInstance.draw();
+            }
           } catch (_) {}
         }
       }

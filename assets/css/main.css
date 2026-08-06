@@ -682,6 +682,24 @@ body.auth-page--deriv {
   place-items: center;
   border: 1px solid #e5e7eb;
 }
+/* Official multicolor Google "G" mark */
+.google-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  line-height: 0;
+}
+.google-icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.btn-social.google .google-icon {
+  margin-inline-end: 0.15rem;
+}
 .deriv-login-card .btn-social.google {
   background: #fff;
   border: 1px solid var(--line);
@@ -2155,6 +2173,119 @@ html[dir="rtl"] .wx-lang-select {
   background-position: left 0.55rem center;
   padding-left: 1.6rem;
   padding-right: 0.75rem;
+}
+
+/* ── TradingView chart shell · expand / minimize ───────────── */
+.wx-chart-shell {
+  position: relative;
+}
+.wx-chart-bar,
+.chart-toolbar.wx-chart-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+.wx-chart-credit {
+  flex: 1;
+  min-width: 8rem;
+}
+.wx-chart-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+.wx-chart-btn {
+  appearance: none;
+  border: 1px solid var(--line, #e4e2dd);
+  background: var(--panel, #fff);
+  color: var(--text, #1a1a1a);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.wx-chart-btn:hover {
+  border-color: rgba(84, 122, 253, 0.55);
+  background: rgba(84, 122, 253, 0.08);
+  color: var(--pastelle-deep, #1333fc);
+}
+.wx-chart-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--line, #e4e2dd);
+  background: #fff;
+  transition: height 0.25s ease;
+}
+.tv-host {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+}
+.tv-host iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
+.wx-chart-fallback-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+.wx-chart-shell.is-minimized .wx-chart-stage {
+  height: 0 !important;
+  min-height: 0 !important;
+  border-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.wx-chart-shell.is-expanded {
+  position: fixed !important;
+  inset: 0;
+  z-index: 1200;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  padding: 0.75rem 1rem 1rem !important;
+  background: #f6f5f3;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  max-width: none !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  overflow: auto;
+}
+.wx-chart-shell.is-expanded .wx-chart-stage {
+  flex: 1;
+  height: auto !important;
+  min-height: calc(100dvh - 5.5rem);
+  border-radius: 12px;
+}
+.wx-chart-shell.is-expanded .tv-host,
+.wx-chart-shell.is-expanded .tv-host > div {
+  min-height: calc(100dvh - 6rem) !important;
+  height: calc(100dvh - 6rem) !important;
+}
+body.wx-chart-expanded {
+  overflow: hidden;
+}
+body.wx-chart-expanded .wx-chat-fab,
+body.wx-chart-expanded .deriv-ask-fab {
+  display: none !important;
+}
+@media (max-width: 720px) {
+  .wx-chart-credit { display: none; }
+  .wx-chart-stage { min-height: 280px; }
 }
 html[dir="rtl"] .drop-menu {
   right: auto;

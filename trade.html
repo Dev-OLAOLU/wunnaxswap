@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/main.css?v=markos1" />
+  <link rel="stylesheet" href="assets/css/main.css?v=tv1" />
 
 </head>
 <body>
@@ -42,9 +42,9 @@
 
     <!-- Chart + book -->
     <section>
-      <div class="card" style="padding:1rem;margin-bottom:.85rem">
+      <div class="card wx-chart-shell" style="padding:1rem;margin-bottom:.85rem">
         <div class="trade-stats" id="tradeStats"></div>
-        <div class="chart-toolbar">
+        <div class="chart-toolbar wx-chart-bar">
           <div class="tf-group" id="tfGroup">
             <button type="button" class="tf-btn" data-tf="1m">1m</button>
             <button type="button" class="tf-btn" data-tf="5m">5m</button>
@@ -53,9 +53,15 @@
             <button type="button" class="tf-btn" data-tf="4h">4H</button>
             <button type="button" class="tf-btn" data-tf="1D">1D</button>
           </div>
-          <span class="muted" style="font-size:.78rem">Hover chart for OHLC · SMA20 · EMA9 · Volume</span>
+          <span class="muted wx-chart-credit" style="font-size:.78rem">TradingView · live market chart</span>
+          <div class="wx-chart-actions">
+            <button type="button" class="wx-chart-btn" data-chart-action="minimize" title="Minimize chart" aria-label="Minimize">−</button>
+            <button type="button" class="wx-chart-btn" data-chart-action="expand" title="Expand chart" aria-label="Expand">⛶</button>
+          </div>
         </div>
-        <div class="chart-box" style="height:380px"><canvas id="priceChart"></canvas></div>
+        <div class="wx-chart-stage chart-box" data-chart-stage style="height:420px">
+          <div id="priceChart" class="tv-host" aria-label="TradingView price chart"></div>
+        </div>
       </div>
 
       <div class="grid-2">
@@ -127,7 +133,8 @@
   <script src="assets/js/backend.js"></script>
 <script src="assets/js/data.js"></script>
 <script src="assets/js/charts.js"></script>
+<script src="assets/js/tv-chart.js?v=tv1"></script>
 <script src="assets/js/i18n.js?v=i18n1"></script>
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=tv1"></script>
 </body>
 </html>
