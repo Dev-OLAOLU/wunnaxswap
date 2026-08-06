@@ -3,54 +3,114 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Sign In | Wunnaxswap</title>
-  <meta name="theme-color" content="#F6F5F3" />
+  <title>Log in | Wunnaxswap</title>
+  <meta name="theme-color" content="#0c135d" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="favicon.png" type="image/png" sizes="32x32" />
-  <link rel="stylesheet" href="assets/css/main.css?v=markos1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css?v=dlogin1" />
 </head>
-<body class="auth-page">
+<body class="auth-page auth-page--deriv">
 
-<div class="auth-wrap">
-  <div class="card auth-box">
-    <a class="brand auth-brand" href="/index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
-    <h1>Sign in</h1>
-    <p class="muted">Enter email and password. Success → home page.</p>
-
-    <form id="signinForm">
-      <div class="field">
-        <label for="siEmail">Email</label>
-        <input id="siEmail" type="email" required placeholder="you@email.com" autocomplete="username" />
-      </div>
-      <div class="field">
-        <div class="field-label-row">
-          <label for="siPass">Password</label>
-          <a class="auth-forgot-link" href="/forgot-password.html">Forgot password?</a>
-        </div>
-        <input id="siPass" type="password" required placeholder="Your password" autocomplete="current-password" />
-      </div>
-      <p id="authError" class="auth-error" hidden role="alert"></p>
-      <button class="btn btn-primary" style="width:100%" type="submit" id="siSubmit">Sign in</button>
-    </form>
-
-    <div class="auth-divider">or</div>
-
-    <button type="button" class="btn btn-social google" id="btnGoogle" data-provider="google" style="width:100%">
-      Continue with Google
-    </button>
-
-    <p class="muted" style="margin:1.15rem 0 0;text-align:center;font-size:.9rem">
-      New here? <a href="/signup.html"><strong>Create an account</strong></a>
-    </p>
+<!-- Top bar (Deriv-style) -->
+<header class="deriv-login-top">
+  <a class="brand" href="/index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
+  <div class="deriv-login-top-actions">
+    <span class="deriv-lang">EN</span>
+    <a class="deriv-help-link" href="/contact.html">Help</a>
   </div>
+</header>
+
+<div class="deriv-login-shell">
+  <!-- Left: brand + look-alike market widget -->
+  <aside class="deriv-login-showcase" aria-hidden="false">
+    <div class="deriv-login-showcase-inner">
+      <p class="deriv-login-tagline">Trading for anyone.<br />Anywhere. Anytime.</p>
+      <p class="deriv-login-sub">Crypto, FX, indices, commodities &amp; options-style markets — one account.</p>
+
+      <!-- Look-alike trading widget (inspired by Deriv dashboard login) -->
+      <div class="deriv-market-widget" id="loginMarketWidget">
+        <div class="dmw-head">
+          <span class="dmw-live"><i></i> Markets live</span>
+          <span class="dmw-tab is-on">Options</span>
+          <span class="dmw-tab">CFDs</span>
+        </div>
+        <div class="dmw-chart" id="loginWidgetChart">
+          <canvas id="loginSpark" width="640" height="200" aria-label="Market sparkline"></canvas>
+        </div>
+        <div class="dmw-ticks" id="loginWidgetTicks">
+          <!-- filled by script -->
+        </div>
+        <div class="dmw-foot">
+          <span>Rise / Fall · Multipliers · Perps</span>
+          <a href="/derivatives.html">Open desk →</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right: login card -->
+  <main class="deriv-login-panel">
+    <div class="deriv-login-card card">
+      <a class="brand auth-brand deriv-login-logo-mobile" href="/index.html"><span class="brand-mark">WX</span> Wunnaxswap</a>
+      <h1 class="deriv-welcome">Welcome back</h1>
+      <p class="muted deriv-welcome-sub">Log in to your Wunnaxswap account</p>
+
+      <div class="deriv-social-stack">
+        <button type="button" class="btn btn-social google" id="btnGoogle" data-provider="google">
+          <span class="deriv-g-icon" aria-hidden="true">G</span>
+          Log in with Google
+        </button>
+      </div>
+
+      <div class="auth-divider">or</div>
+
+      <form id="signinForm">
+        <div class="field">
+          <label for="siEmail">Email</label>
+          <input id="siEmail" type="email" required placeholder="Email or username" autocomplete="username" />
+        </div>
+        <div class="field">
+          <div class="field-label-row">
+            <label for="siPass">Password</label>
+            <a class="auth-forgot-link" href="/forgot-password.html">Forgot password?</a>
+          </div>
+          <input id="siPass" type="password" required placeholder="Password" autocomplete="current-password" />
+        </div>
+        <p id="authError" class="auth-error" hidden role="alert"></p>
+        <button class="btn btn-primary deriv-login-submit" style="width:100%" type="submit" id="siSubmit">Log in</button>
+      </form>
+
+      <p class="deriv-signup-line">
+        Don&rsquo;t have an account yet? <a href="/signup.html"><strong>Sign up</strong></a>
+      </p>
+    </div>
+  </main>
+</div>
+
+<!-- Floating help (look-alike support widget) -->
+<button type="button" class="deriv-ask-fab" id="derivAskFab" aria-label="Ask support">
+  <span class="deriv-ask-dot"></span>
+  Ask WX
+</button>
+<div class="deriv-ask-panel" id="derivAskPanel" hidden>
+  <div class="deriv-ask-panel-head">
+    <strong>Support</strong>
+    <button type="button" class="deriv-ask-close" id="derivAskClose" aria-label="Close">×</button>
+  </div>
+  <p class="muted" style="font-size:.88rem;margin:0 0 .75rem">Need help signing in? Use email login, Google, or reset your password.</p>
+  <a class="btn btn-soft btn-sm" href="/forgot-password.html" style="width:100%;box-sizing:border-box;margin-bottom:.4rem">Reset password</a>
+  <a class="btn btn-ghost btn-sm" href="/contact.html" style="width:100%;box-sizing:border-box">Contact</a>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="/assets/js/firebase-config.js?v=mgoog1"></script>
-<script src="/assets/js/backend.js?v=mgoog1"></script>
-<!-- Dedicated login: success banner → force home (mobile Google → auth-callback) -->
-<script src="/assets/js/auth-page.js?v=mgoog1"></script>
+<script src="/assets/js/firebase-config.js?v=dlogin1"></script>
+<script src="/assets/js/backend.js?v=dlogin1"></script>
+<script src="/assets/js/auth-page.js?v=dlogin1"></script>
+<script src="/assets/js/login-widget.js?v=dlogin1"></script>
 </body>
 </html>
