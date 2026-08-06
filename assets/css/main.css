@@ -1422,9 +1422,16 @@ body.wx-authed #marketMovingBand {
 .market-moving-line {
   display: block;
 }
-/* Primary brand CTA (matches site buttons) */
-.market-moving-cta {
+.market-moving-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
   margin-top: 0.25rem;
+}
+/* Primary — new users */
+.market-moving-cta {
   background: var(--grad-btn) !important;
   color: #ffffff !important;
   border: 0 !important;
@@ -1439,6 +1446,27 @@ body.wx-authed #marketMovingBand {
 }
 .market-moving-cta:hover {
   filter: brightness(1.06);
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  text-decoration: none !important;
+}
+/* Secondary — existing users */
+.market-moving-cta-secondary {
+  background: transparent !important;
+  color: #f6f5f3 !important;
+  border: 1.5px solid rgba(246, 245, 243, 0.55) !important;
+  border-radius: 999px !important;
+  font-family: var(--font) !important;
+  font-weight: 800 !important;
+  font-size: 0.92rem !important;
+  letter-spacing: -0.01em;
+  padding: 0.78rem 1.5rem !important;
+  min-height: 48px;
+  box-shadow: none;
+}
+.market-moving-cta-secondary:hover {
+  background: rgba(246, 245, 243, 0.1) !important;
+  border-color: #f6f5f3 !important;
   color: #ffffff !important;
   transform: translateY(-1px);
   text-decoration: none !important;
