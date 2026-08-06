@@ -12,23 +12,28 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/main.css?v=deriv1" />
+  <link rel="stylesheet" href="assets/css/main.css?v=deriv2" />
 </head>
 <body>
 <main class="container-wide deriv-page" style="padding-bottom:2.5rem">
   <div class="page-hero deriv-hero">
     <div>
-      <div class="pill">◆ Multi-asset derivatives · FX · Indices · Commodities · Crypto perps</div>
+      <div class="pill">◆ Live Deriv ticks · Options · Multi-asset perps · User portfolio</div>
       <h1>Derivatives <span class="grad">desk</span></h1>
-      <p class="lead" style="margin-bottom:.85rem">
-        Go long or short across global markets — not just crypto. Demo pricing, leverage, and funding for paper trading.
+      <p class="lead" style="margin-bottom:.55rem">
+        FX, indices, commodities, crypto perps, and Deriv-style derived markets. Live prices stream from the Deriv public API; your trades bind to your Wunnaxswap login.
       </p>
+      <p class="deriv-feed-status" id="derivFeedStatus">Connecting to Deriv…</p>
+      <p class="deriv-user-bar" id="derivUserBar">Checking account…</p>
       <div class="deriv-class-tabs" id="derivClassTabs" role="tablist" aria-label="Asset class"></div>
     </div>
     <div class="card deriv-hero-card">
       <div class="muted" style="font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase">Live desk pulse</div>
       <div class="deriv-pulse" id="derivPulse"></div>
-      <button type="button" class="btn btn-primary btn-sm" id="openDerivChat" style="margin-top:.85rem;width:100%">
+      <a class="btn btn-soft btn-sm" style="margin-top:.75rem;width:100%;box-sizing:border-box" href="https://home.deriv.com/dashboard/options" target="_blank" rel="noopener">
+        Open Deriv Options dashboard ↗
+      </a>
+      <button type="button" class="btn btn-primary btn-sm" id="openDerivChat" style="margin-top:.5rem;width:100%">
         Open Derivatives Chat
       </button>
     </div>
@@ -95,21 +100,49 @@
           <strong style="font-size:.9rem">Order ticket</strong>
           <span class="funding-pill" id="derivFunding">Funding 0.01%</span>
         </div>
-        <div class="side-toggle">
-          <button type="button" class="long active" id="derivLong">Long</button>
-          <button type="button" class="short" id="derivShort">Short</button>
+        <div class="mode-switch" id="derivTradeMode" style="margin-bottom:.75rem;width:100%">
+          <button type="button" class="active" data-tmode="perp">Perps</button>
+          <button type="button" data-tmode="options">Options</button>
         </div>
-        <label class="muted" style="font-size:.78rem;font-weight:700">Leverage</label>
-        <div class="lev-row" id="derivLevRow"></div>
-        <div class="field"><label>Order type</label>
-          <select id="derivOrderType"><option value="market">Market</option><option value="limit">Limit</option></select>
+
+        <div id="derivPerpControls">
+          <div class="side-toggle">
+            <button type="button" class="long active" id="derivLong">Long</button>
+            <button type="button" class="short" id="derivShort">Short</button>
+          </div>
+          <label class="muted" style="font-size:.78rem;font-weight:700">Leverage</label>
+          <div class="lev-row" id="derivLevRow"></div>
+          <div class="field"><label>Order type</label>
+            <select id="derivOrderType"><option value="market">Market</option><option value="limit">Limit</option></select>
+          </div>
+          <div class="field"><label>Price</label><input id="derivOrderPrice" type="number" step="any" placeholder="Market uses last" /></div>
         </div>
-        <div class="field"><label>Price</label><input id="derivOrderPrice" type="number" step="any" placeholder="Market uses last" /></div>
+
+        <div id="derivOptionsPanel" hidden>
+          <p class="muted" style="font-size:.8rem;margin:0 0 .55rem;line-height:1.4">
+            Rise / Fall options (paper). Duration contracts settled from live or sim ticks — inspired by
+            <a href="https://home.deriv.com/dashboard/options" target="_blank" rel="noopener">Deriv Options</a>.
+          </p>
+          <div class="side-toggle">
+            <button type="button" class="long active" id="optRise">Rise</button>
+            <button type="button" class="short" id="optFall">Fall</button>
+          </div>
+          <div class="field"><label>Duration</label>
+            <select id="optDuration">
+              <option value="15">15 seconds</option>
+              <option value="30">30 seconds</option>
+              <option value="60" selected>1 minute</option>
+              <option value="120">2 minutes</option>
+              <option value="300">5 minutes</option>
+            </select>
+          </div>
+        </div>
+
         <div class="field"><label id="derivSizeLabel">Size (contracts)</label><input id="derivOrderSize" type="number" step="any" placeholder="0.00" /></div>
-        <div class="muted" style="font-size:.8rem;margin-bottom:.7rem" id="derivHint">Paper margin · demo only</div>
-        <button type="button" class="btn btn-primary" style="width:100%" id="derivSubmit">Place long</button>
+        <div class="muted" style="font-size:.8rem;margin-bottom:.7rem" id="derivHint">Sign in required to place trades</div>
+        <button type="button" class="btn btn-primary" style="width:100%" id="derivSubmit">Sign in to trade</button>
         <p class="muted" style="font-size:.72rem;margin:.65rem 0 0;line-height:1.4">
-          Simulated multi-asset derivatives. Not investment advice. No real funds.
+          Live prices via Deriv public WebSocket. Paper execution on your Wunnaxswap user account. Real-money options: Deriv dashboard.
         </p>
       </div>
 
@@ -134,8 +167,8 @@
   <section class="section" style="padding-top:1.5rem">
     <div class="section-head">
       <div>
-        <h2>Open paper positions</h2>
-        <p>Local demo book for this browser session.</p>
+        <h2>Your perpetual positions</h2>
+        <p>Bound to your signed-in account on this device (paper).</p>
       </div>
     </div>
     <div class="table-wrap">
@@ -151,16 +184,39 @@
       </table>
     </div>
   </section>
+
+  <section class="section" style="padding-top:0.5rem">
+    <div class="section-head">
+      <div>
+        <h2>Your options contracts</h2>
+        <p>Rise/Fall paper contracts — settled from live Deriv ticks when available.</p>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="https://home.deriv.com/dashboard/options" target="_blank" rel="noopener">Deriv Options ↗</a>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Symbol</th><th>Dir</th><th>Stake</th><th>Entry</th><th>Exit</th><th>Time</th><th>P&amp;L</th><th>Feed</th>
+          </tr>
+        </thead>
+        <tbody id="derivOptionsBody">
+          <tr><td colspan="8" class="muted">No options contracts yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/js/firebase-config.js?v=mgoog1"></script>
-<script src="assets/js/backend.js?v=mgoog1"></script>
-<script src="assets/js/data.js?v=deriv1"></script>
+<script src="assets/js/firebase-config.js?v=deriv2"></script>
+<script src="assets/js/backend.js?v=deriv2"></script>
+<script src="assets/js/data.js?v=deriv2"></script>
 <script src="assets/js/charts.js"></script>
-<script src="assets/js/app.js?v=deriv1"></script>
-<script src="assets/js/derivatives.js?v=deriv1"></script>
+<script src="assets/js/app.js?v=deriv2"></script>
+<script src="assets/js/deriv-api.js?v=deriv2"></script>
+<script src="assets/js/derivatives.js?v=deriv2"></script>
 </body>
 </html>

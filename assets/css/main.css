@@ -1675,6 +1675,42 @@ body.wx-authed #marketMovingBand {
   .deriv-list-panel { max-height: 280px; }
 }
 
+.deriv-feed-status,
+.deriv-user-bar {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+  max-width: 40rem;
+}
+.deriv-feed-status a,
+.deriv-user-bar a {
+  font-weight: 700;
+}
+.deriv-feed-status.is-live {
+  color: #0d9f6e;
+}
+.deriv-feed-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+.deriv-feed-dot.is-live {
+  background: #0d9f6e;
+  box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.2);
+}
+#derivTradeMode {
+  display: flex;
+  width: 100%;
+}
+#derivTradeMode button {
+  flex: 1;
+}
+
 /* Soft-black accent panels (Mark OS depth) */
 .hero-card {
   border: 1px solid var(--line);

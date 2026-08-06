@@ -5,13 +5,47 @@
   "use strict";
 
   var STORAGE_POS = "wunnax_deriv_positions";
+  var STORAGE_OPTS = "wunnax_deriv_options";
   var state = {
     classFilter: "all",
     symbol: "EURUSD",
     side: "long",
     lev: 10,
     tf: "15m",
+    tradeMode: "perp", // perp | options
+    optionDir: "rise", // rise | fall
+    optionSecs: 60,
+    liveFeed: false,
   };
+
+  function userKey() {
+    try {
+      var u = JSON.parse(localStorage.getItem("wunnax_user") || "null");
+      if (u && u.email) return String(u.email).toLowerCase();
+    } catch (_) {}
+    try {
+      if (window.firebase && firebase.auth && firebase.auth().currentUser) {
+        return (firebase.auth().currentUser.email || firebase.auth().currentUser.uid || "").toLowerCase();
+      }
+    } catch (_) {}
+    return "guest";
+  }
+
+  function isUserAuthed() {
+    try {
+      if (window.Wunnax && typeof Wunnax.isAuthed === "function") return !!Wunnax.isAuthed();
+    } catch (_) {}
+    try {
+      if (localStorage.getItem("wunnax_session") === "1") return true;
+    } catch (_) {}
+    try {
+      if (window.WunnaxBackend && WunnaxBackend.isAuthed && WunnaxBackend.isAuthed()) return true;
+    } catch (_) {}
+    try {
+      if (window.firebase && firebase.auth && firebase.auth().currentUser) return true;
+    } catch (_) {}
+    return false;
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -29,7 +63,13 @@
 
   function clsLabel(c) {
     return (
-      { forex: "FX", index: "Indices", commodity: "Commodities", crypto: "Crypto" }[c] ||
+      {
+        forex: "FX",
+        index: "Indices",
+        commodity: "Commodities",
+        derived: "Derived",
+        crypto: "Crypto",
+      }[c] ||
       c ||
       "—"
     );
@@ -49,14 +89,47 @@
 
   function getPositions() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_POS) || "[]");
+      var all = JSON.parse(localStorage.getItem(STORAGE_POS) || "{}");
+      // migrate old array format
+      if (Array.isArray(all)) {
+        var mig = { guest: all };
+        localStorage.setItem(STORAGE_POS, JSON.stringify(mig));
+        all = mig;
+      }
+      var key = userKey();
+      return Array.isArray(all[key]) ? all[key] : [];
     } catch (_) {
       return [];
     }
   }
 
   function setPositions(arr) {
-    localStorage.setItem(STORAGE_POS, JSON.stringify(arr || []));
+    try {
+      var all = JSON.parse(localStorage.getItem(STORAGE_POS) || "{}");
+      if (Array.isArray(all)) all = { guest: all };
+      all[userKey()] = arr || [];
+      localStorage.setItem(STORAGE_POS, JSON.stringify(all));
+    } catch (_) {
+      localStorage.setItem(STORAGE_POS, JSON.stringify({}));
+    }
+  }
+
+  function getOptionsBook() {
+    try {
+      var all = JSON.parse(localStorage.getItem(STORAGE_OPTS) || "{}");
+      var key = userKey();
+      return Array.isArray(all[key]) ? all[key] : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function setOptionsBook(arr) {
+    try {
+      var all = JSON.parse(localStorage.getItem(STORAGE_OPTS) || "{}");
+      all[userKey()] = arr || [];
+      localStorage.setItem(STORAGE_OPTS, JSON.stringify(all));
+    } catch (_) {}
   }
 
   function filtered() {
@@ -207,8 +280,19 @@
   function renderTicket() {
     var d = current();
     if (!d) return;
+    var isOpt = state.tradeMode === "options" || d.class === "derived" || d.product === "OPTIONS";
+    var perpBlock = $("derivPerpControls");
+    var optBlock = $("derivOptionsPanel");
+    if (perpBlock) perpBlock.hidden = !!isOpt && state.tradeMode === "options";
+    if (optBlock) optBlock.hidden = !isOpt || (state.tradeMode === "perp" && d.class !== "derived");
+
+    // When market is Derived, prefer options UI
+    if (d.class === "derived" && state.tradeMode === "perp") {
+      // keep perp mode allowed but show both hints
+    }
+
     var levRow = $("derivLevRow");
-    if (levRow) {
+    if (levRow && !isOpt) {
       var levs = [2, 5, 10, 25, 50, 100].filter(function (x) {
         return x <= (d.leverageMax || 50);
       });
@@ -241,16 +325,37 @@
     }
     var sub = $("derivSubmit");
     if (sub) {
-      sub.textContent = state.side === "long" ? "Place long" : "Place short";
-      sub.className =
-        "btn " + (state.side === "long" ? "btn-primary" : "btn-ghost") + "";
-      sub.style.width = "100%";
-      if (state.side === "short") {
-        sub.style.borderColor = "rgba(225,29,72,.45)";
-        sub.style.color = "#be123c";
-      } else {
+      if (!isUserAuthed()) {
+        sub.textContent = "Sign in to trade";
+        sub.className = "btn btn-primary";
+        sub.style.width = "100%";
         sub.style.borderColor = "";
         sub.style.color = "";
+      } else if (state.tradeMode === "options" || d.class === "derived") {
+        sub.textContent =
+          "Buy " + (state.optionDir === "rise" ? "Rise" : "Fall") + " · " + (state.optionSecs || 60) + "s";
+        sub.className = "btn btn-primary";
+        sub.style.width = "100%";
+        sub.style.borderColor = "";
+        sub.style.color = "";
+      } else {
+        sub.textContent = state.side === "long" ? "Place long" : "Place short";
+        sub.className = "btn " + (state.side === "long" ? "btn-primary" : "btn-ghost");
+        sub.style.width = "100%";
+        if (state.side === "short") {
+          sub.style.borderColor = "rgba(225,29,72,.45)";
+          sub.style.color = "#be123c";
+        } else {
+          sub.style.borderColor = "";
+          sub.style.color = "";
+        }
+      }
+    }
+    if ($("derivSizeLabel")) {
+      if (state.tradeMode === "options" || d.class === "derived") {
+        $("derivSizeLabel").textContent = "Stake (USD)";
+      } else {
+        $("derivSizeLabel").textContent = "Size (" + (d.unit || "contracts") + ")";
       }
     }
     updateHeader();
@@ -380,9 +485,31 @@
     });
   }
 
+  function requireLoginToast() {
+    if (window.Wunnax && Wunnax.toast) {
+      Wunnax.toast("Sign in to trade derivatives on your account");
+    } else {
+      alert("Sign in to trade derivatives on your account");
+    }
+    setTimeout(function () {
+      location.href = "signin.html?next=" + encodeURIComponent(location.pathname + location.search);
+    }, 700);
+  }
+
   function placeOrder() {
+    if (!isUserAuthed()) {
+      requireLoginToast();
+      return;
+    }
     var d = current();
     if (!d) return;
+
+    // Options (Rise/Fall) — Deriv-style duration contracts, paper settled from live/demo ticks
+    if (state.tradeMode === "options" || d.class === "derived" || d.product === "OPTIONS") {
+      placeOptionContract(d);
+      return;
+    }
+
     var size = Number(($("derivOrderSize") && $("derivOrderSize").value) || 0);
     var type = ($("derivOrderType") && $("derivOrderType").value) || "market";
     var limitPx = Number(($("derivOrderPrice") && $("derivOrderPrice").value) || 0);
@@ -395,22 +522,149 @@
     var arr = getPositions();
     arr.unshift({
       id: "d" + Date.now(),
+      user: userKey(),
       symbol: d.symbol,
       side: state.side,
       size: size,
       entry: entry,
       lev: state.lev,
       class: d.class,
+      liveEntry: !!(window.WunnaxDerivApi && WunnaxDerivApi.isLive(d.symbol)),
       at: Date.now(),
     });
     setPositions(arr);
     renderPositions();
     if (window.Wunnax && Wunnax.toast) {
       Wunnax.toast(
-        (state.side === "long" ? "Long " : "Short ") + d.symbol + " × " + size + " @ " + money(entry, entry < 2 ? 4 : 2)
+        (state.side === "long" ? "Long " : "Short ") +
+          d.symbol +
+          " × " +
+          size +
+          " @ " +
+          money(entry, entry < 2 ? 4 : 2) +
+          " · saved to " +
+          userKey()
       );
     }
     if ($("derivOrderSize")) $("derivOrderSize").value = "";
+  }
+
+  function placeOptionContract(d) {
+    var stake = Number(($("derivOrderSize") && $("derivOrderSize").value) || 0);
+    if (!isFinite(stake) || stake < 1) {
+      if (window.Wunnax && Wunnax.toast) Wunnax.toast("Options stake minimum is 1");
+      return;
+    }
+    var entry = d.price;
+    var secs = state.optionSecs || 60;
+    var dir = state.optionDir || "rise";
+    var book = getOptionsBook();
+    var contract = {
+      id: "opt" + Date.now(),
+      user: userKey(),
+      symbol: d.symbol,
+      dir: dir,
+      stake: stake,
+      entry: entry,
+      payout: stake * 1.85, // demo fixed payout multiplier (illustrative)
+      opensAt: Date.now(),
+      expiresAt: Date.now() + secs * 1000,
+      status: "open",
+      result: null,
+      live: !!(window.WunnaxDerivApi && WunnaxDerivApi.isLive(d.symbol)),
+    };
+    book.unshift(contract);
+    setOptionsBook(book);
+    renderOptions();
+    if (window.Wunnax && Wunnax.toast) {
+      Wunnax.toast(
+        (dir === "rise" ? "Rise" : "Fall") +
+          " " +
+          d.symbol +
+          " · stake " +
+          money(stake, 2) +
+          " · " +
+          secs +
+          "s"
+      );
+    }
+    if ($("derivOrderSize")) $("derivOrderSize").value = "";
+    // Settle when duration ends
+    setTimeout(function () {
+      settleOption(contract.id);
+    }, secs * 1000 + 50);
+  }
+
+  function settleOption(id) {
+    var book = getOptionsBook();
+    var i = book.findIndex(function (c) {
+      return c.id === id;
+    });
+    if (i < 0) return;
+    var c = book[i];
+    if (c.status !== "open") return;
+    var m = WUNNA.derivBySymbol(c.symbol);
+    var exit = m ? m.price : c.entry;
+    var won =
+      (c.dir === "rise" && exit > c.entry) || (c.dir === "fall" && exit < c.entry);
+    c.status = "settled";
+    c.result = won ? "won" : exit === c.entry ? "tie" : "lost";
+    c.exit = exit;
+    c.pnl = won ? c.payout - c.stake : c.result === "tie" ? 0 : -c.stake;
+    book[i] = c;
+    setOptionsBook(book);
+    renderOptions();
+    if (window.Wunnax && Wunnax.toast) {
+      Wunnax.toast(
+        c.symbol +
+          " option " +
+          c.result.toUpperCase() +
+          (c.pnl >= 0 ? " +" : " ") +
+          money(c.pnl, 2)
+      );
+    }
+  }
+
+  function renderOptions() {
+    var body = $("derivOptionsBody");
+    if (!body) return;
+    // settle any expired still open
+    getOptionsBook().forEach(function (c) {
+      if (c.status === "open" && Date.now() >= c.expiresAt) settleOption(c.id);
+    });
+    var book = getOptionsBook();
+    if (!book.length) {
+      body.innerHTML =
+        '<tr><td colspan="8" class="muted">No options contracts yet. Switch to Options mode or pick a Derived market.</td></tr>';
+      return;
+    }
+    body.innerHTML = book
+      .slice(0, 40)
+      .map(function (c) {
+        var left = Math.max(0, Math.ceil((c.expiresAt - Date.now()) / 1000));
+        return (
+          "<tr><td><strong>" +
+          c.symbol +
+          "</strong></td><td>" +
+          (c.dir || "").toUpperCase() +
+          '</td><td class="mono">' +
+          money(c.stake, 2) +
+          '</td><td class="mono">' +
+          money(c.entry, c.entry < 2 ? 4 : 2) +
+          '</td><td class="mono">' +
+          (c.exit != null ? money(c.exit, c.exit < 2 ? 4 : 2) : "—") +
+          "</td><td>" +
+          (c.status === "open" ? left + "s" : c.status) +
+          '</td><td class="mono ' +
+          (c.pnl > 0 ? "up" : c.pnl < 0 ? "down" : "") +
+          '">' +
+          (c.pnl != null ? (c.pnl >= 0 ? "+" : "") + money(c.pnl, 2) : "—") +
+          "</td><td>" +
+          (c.live ? "Live" : "Sim") +
+          "</td></tr>"
+        );
+      })
+      .join("");
   }
 
   /* ---------------- Derivatives Chat ---------------- */
@@ -461,13 +715,23 @@
           "Risk tips (demo): size positions so a 1–2% account move is acceptable; lower leverage on news; set mental stops. Unit labels (lots / contracts / oz) change by market. No real liquidations here.",
       };
     }
+    if (/deriv\.com|options dashboard|volatility|r_10|r_50|boom|crash|synthetic/.test(q)) {
+      return {
+        text:
+          "We stream public market data from Deriv’s API (active symbols + ticks). Derived markets like R_10 / R_50 / Boom & Crash map to Deriv Options underlyings. Paper Rise/Fall contracts settle here; real-money options stay on home.deriv.com/dashboard/options.",
+        links: [
+          { href: "https://home.deriv.com/dashboard/options", label: "Deriv Options dashboard" },
+          { href: "derivatives.html?class=derived&mode=options", label: "Derived markets" },
+        ],
+      };
+    }
     if (/help|what|how|desk|derivative/.test(q)) {
       return {
         text:
-          "This Derivatives Desk covers FX, indices, commodities, and crypto perps — not spot-only crypto. Pick a class tab, select a market, Long/Short with leverage, and use this chat for desk-style Q&A.",
+          "Derivatives Desk: FX, indices, commodities, crypto perps, and Deriv-style derived indices. Sign in to save perps & options to your user. Live ticks when the Deriv WebSocket connects.",
         links: [
-          { href: "trade.html", label: "Crypto spot/futures" },
-          { href: "markets.html", label: "Markets" },
+          { href: "https://home.deriv.com/dashboard/options", label: "Deriv Options" },
+          { href: "signin.html?next=derivatives.html", label: "Sign in" },
         ],
       };
     }
@@ -596,19 +860,33 @@
     }
   }
 
+  function applyLiveTick(sym, quote) {
+    var d = WUNNA.derivBySymbol(sym);
+    if (!d || !isFinite(quote)) return;
+    var prev = d.price;
+    d.price = quote;
+    if (prev > 0) {
+      var ch = ((quote - prev) / prev) * 100;
+      d.change = +((d.change || 0) * 0.85 + ch * 0.15).toFixed(3);
+    }
+    d.high = Math.max(d.high || quote, quote);
+    d.low = Math.min(d.low || quote, quote);
+  }
+
   function tickDerivs() {
     list().forEach(function (d) {
+      // Skip sim tick when Deriv live feed is fresh for this symbol
+      if (window.WunnaxDerivApi && WunnaxDerivApi.isLive(d.symbol)) return;
       var vol = d.price * (0.00015 + Math.random() * 0.0004);
       var dir = Math.random() > 0.5 ? 1 : -1;
       d.price = Math.max(d.tick || 0.0001, d.price + dir * vol);
       d.change = +(d.change + (Math.random() - 0.5) * 0.04).toFixed(2);
       d.high = Math.max(d.high, d.price);
       d.low = Math.min(d.low, d.price);
-      if (typeof d.funding === "number") {
+      if (typeof d.funding === "number" && d.product !== "OPTIONS") {
         d.funding = +(d.funding + (Math.random() - 0.5) * 0.001).toFixed(4);
       }
     });
-    // Sync crypto perps with spot book when available
     try {
       if (WUNNA.ASSETS) {
         ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE"].forEach(function (sym) {
@@ -616,7 +894,7 @@
             return a.symbol === sym;
           });
           var perp = WUNNA.derivBySymbol(sym + "USDT");
-          if (spot && perp) {
+          if (spot && perp && !(window.WunnaxDerivApi && WunnaxDerivApi.isLive(sym + "USDT"))) {
             perp.price = spot.price;
             perp.change = spot.change;
             perp.high = spot.high;
@@ -628,7 +906,115 @@
     updateHeader();
     renderPulse();
     renderPositions();
+    renderOptions();
+    updateFeedStatus();
+    updateUserBar();
     if (Math.random() > 0.6) renderBook();
+  }
+
+  function updateFeedStatus() {
+    var el = $("derivFeedStatus");
+    if (!el) return;
+    var st = window.WunnaxDerivApi ? WunnaxDerivApi.getStatus() : { connected: false };
+    if (st.connected) {
+      el.innerHTML =
+        '<span class="deriv-feed-dot is-live"></span> Live ticks via Deriv API · ' +
+        (st.liveCount || 0) +
+        " markets · <a href=\"https://home.deriv.com/dashboard/options\" target=\"_blank\" rel=\"noopener\">Options dashboard</a>";
+      el.className = "deriv-feed-status is-live";
+      state.liveFeed = true;
+    } else {
+      el.innerHTML =
+        '<span class="deriv-feed-dot"></span> Connecting to Deriv… prices simulated until feed is live · <a href="https://home.deriv.com/dashboard/options" target="_blank" rel="noopener">home.deriv.com/options</a>';
+      el.className = "deriv-feed-status";
+      state.liveFeed = false;
+    }
+  }
+
+  function updateUserBar() {
+    var el = $("derivUserBar");
+    if (!el) return;
+    if (isUserAuthed()) {
+      el.innerHTML =
+        '<span class="up">Signed in</span> as <strong>' +
+        userKey() +
+        "</strong> — positions &amp; options are saved to your account on this device. " +
+        '<a href="https://home.deriv.com/dashboard/options" target="_blank" rel="noopener">Open Deriv Options</a>';
+    } else {
+      el.innerHTML =
+        '<span class="down">Guest mode</span> — browse live/sim markets free. <a href="signin.html?next=derivatives.html"><strong>Sign in</strong></a> to place perps &amp; options on your user book.';
+    }
+    // Gate ticket button label
+    var sub = $("derivSubmit");
+    if (sub && !isUserAuthed()) {
+      sub.textContent = "Sign in to trade";
+    }
+  }
+
+  function wireTradeMode() {
+    var wrap = $("derivTradeMode");
+    if (!wrap) return;
+    wrap.querySelectorAll("[data-tmode]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        state.tradeMode = b.getAttribute("data-tmode") || "perp";
+        wrap.querySelectorAll("[data-tmode]").forEach(function (x) {
+          x.classList.toggle("active", x === b);
+        });
+        renderTicket();
+        var optsPanel = $("derivOptionsPanel");
+        if (optsPanel) {
+          optsPanel.hidden = state.tradeMode !== "options";
+        }
+      });
+    });
+    var rise = $("optRise");
+    var fall = $("optFall");
+    if (rise) {
+      rise.addEventListener("click", function () {
+        state.optionDir = "rise";
+        rise.classList.add("active");
+        if (fall) fall.classList.remove("active");
+      });
+    }
+    if (fall) {
+      fall.addEventListener("click", function () {
+        state.optionDir = "fall";
+        fall.classList.add("active");
+        if (rise) rise.classList.remove("active");
+      });
+    }
+    var dur = $("optDuration");
+    if (dur) {
+      dur.addEventListener("change", function () {
+        state.optionSecs = Number(dur.value) || 60;
+      });
+    }
+  }
+
+  function connectDerivFeed() {
+    if (!window.WunnaxDerivApi) return;
+    WunnaxDerivApi.onStatus(function () {
+      updateFeedStatus();
+    });
+    WunnaxDerivApi.onTick(function (t) {
+      applyLiveTick(t.symbol, t.quote);
+      if (t.symbol === state.symbol) {
+        updateHeader();
+        if (chartInstance && chartInstance.setPrice) {
+          try {
+            chartInstance.setPrice(t.quote);
+            if (chartInstance.draw) chartInstance.draw();
+          } catch (_) {}
+        }
+      }
+      renderPulse();
+      renderList();
+    });
+    WunnaxDerivApi.connect();
+    // Subscribe all mapped symbols
+    WunnaxDerivApi.getMappedSymbols().forEach(function (s) {
+      WunnaxDerivApi.subscribeTick(s);
+    });
   }
 
   function boot() {
@@ -640,9 +1026,10 @@
       var sym = (u.get("symbol") || u.get("pair") || "").toUpperCase().replace("/", "");
       if (sym && WUNNA.derivBySymbol(sym)) state.symbol = sym;
       var cls = (u.get("class") || "").toLowerCase();
-      if (cls && ["forex", "index", "commodity", "crypto", "all"].indexOf(cls) >= 0) {
+      if (cls && ["forex", "index", "commodity", "crypto", "derived", "all"].indexOf(cls) >= 0) {
         state.classFilter = cls;
       }
+      if ((u.get("mode") || "").toLowerCase() === "options") state.tradeMode = "options";
     } catch (_) {}
 
     renderClassTabs();
@@ -651,10 +1038,27 @@
     renderBook();
     renderChart();
     renderPositions();
+    renderOptions();
     renderPulse();
     initChat();
     wireTicket();
+    wireTradeMode();
+    updateUserBar();
+    updateFeedStatus();
+    connectDerivFeed();
+
+    // Default options panel visibility
+    var optsPanel = $("derivOptionsPanel");
+    if (optsPanel) optsPanel.hidden = state.tradeMode !== "options";
+    var wrap = $("derivTradeMode");
+    if (wrap) {
+      wrap.querySelectorAll("[data-tmode]").forEach(function (x) {
+        x.classList.toggle("active", x.getAttribute("data-tmode") === state.tradeMode);
+      });
+    }
+
     setInterval(tickDerivs, 2200);
+    setInterval(renderOptions, 1000);
     window.addEventListener("resize", function () {
       renderChart();
     });
