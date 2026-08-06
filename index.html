@@ -12,40 +12,38 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/main.css?v=banner4" />
-
-  
+  <link rel="stylesheet" href="assets/css/main.css?v=i18n1" />
 </head>
 <body>
 
 <main>
   <section class="container hero">
     <div>
-      <div class="pill">◆ Crypto · FX · Indices · Commodities · Transparent demo fees</div>
-      <h1>Trade crypto &amp; <span class="grad">derivatives</span></h1>
-      <p class="lead">Wunnaxswap helps you find smarter crypto prices — and now go long/short FX, indices, gold, oil, and crypto perps on one derivatives desk.</p>
+      <div class="pill" data-i18n="home_pill">◆ Crypto · FX · Indices · Commodities · Transparent demo fees</div>
+      <h1><span data-i18n="home_h1_a">Trade crypto &amp; </span><span class="grad" data-i18n="home_h1_b">derivatives</span></h1>
+      <p class="lead" data-i18n="home_lead">Wunnaxswap helps you find smarter crypto prices — and now go long/short FX, indices, gold, oil, and crypto perps on one derivatives desk.</p>
       <div class="hero-cta" id="heroCta">
-        <a class="btn btn-primary guest-only" href="signup.html" data-guest-only>Sign Up</a>
-        <a class="btn btn-ghost guest-only" href="signin.html" data-guest-only>Sign In</a>
-        <a class="btn btn-primary member-only" href="trade.html" data-member-only hidden>Start trading</a>
-        <a class="btn btn-soft member-only" href="profile/wallet.html" data-member-only hidden>Wallet</a>
-        <a class="btn btn-cyan" href="derivatives.html">Derivatives desk</a>
-        <a class="btn btn-ghost" href="markets.html">Browse markets</a>
+        <a class="btn btn-primary guest-only" href="signup.html" data-guest-only data-i18n="nav_signup">Sign Up</a>
+        <a class="btn btn-ghost guest-only" href="signin.html" data-guest-only data-i18n="nav_signin">Sign In</a>
+        <a class="btn btn-primary member-only" href="trade.html" data-member-only hidden data-i18n="home_start">Start trading</a>
+        <a class="btn btn-soft member-only" href="profile/wallet.html" data-member-only hidden data-i18n="home_wallet">Wallet</a>
+        <a class="btn btn-cyan" href="derivatives.html" data-i18n="home_deriv">Derivatives desk</a>
+        <a class="btn btn-ghost" href="markets.html" data-i18n="home_markets">Browse markets</a>
       </div>
       <div class="stats">
-        <div class="stat"><strong>200+</strong><span>Countries welcome</span></div>
-        <div class="stat"><strong>150+</strong><span>Trading pairs</span></div>
-        <div class="stat"><strong>0.03%</strong><span>VIP maker fees</span></div>
-        <div class="stat"><strong>24/7</strong><span>Demo markets live</span></div>
+        <div class="stat"><strong>200+</strong><span data-i18n="home_stat_countries">Countries welcome</span></div>
+        <div class="stat"><strong>150+</strong><span data-i18n="home_stat_pairs">Trading pairs</span></div>
+        <div class="stat"><strong>0.03%</strong><span data-i18n="home_stat_fees">VIP maker fees</span></div>
+        <div class="stat"><strong>24/7</strong><span data-i18n="home_stat_live">Demo markets live</span></div>
       </div>
     </div>
     <div class="card hero-card">
-      <h3>Trending now</h3>
+      <h3 data-i18n="home_trending">Trending now</h3>
       <div id="homeTickers"></div>
       <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
-        <a class="btn btn-soft btn-sm" href="trade.html?pair=BTC_USDT">Trade BTC</a>
-        <a class="btn btn-ghost btn-sm" href="derivatives.html?symbol=XAUUSD">Gold perp</a>
-        <a class="btn btn-ghost btn-sm" href="swap.html">Instant swap</a>
+        <a class="btn btn-soft btn-sm" href="trade.html?pair=BTC_USDT" data-i18n="home_trade_btc">Trade BTC</a>
+        <a class="btn btn-ghost btn-sm" href="derivatives.html?symbol=XAUUSD" data-i18n="home_gold">Gold perp</a>
+        <a class="btn btn-ghost btn-sm" href="swap.html" data-i18n="home_swap">Instant swap</a>
       </div>
     </div>
   </section>
@@ -53,39 +51,39 @@
   <section class="section container">
     <div class="section-head">
       <div>
-        <h2>Why traders choose Wunnaxswap</h2>
-        <p>Everything you need to buy, sell, route, and earn — without opaque pricing.</p>
+        <h2 data-i18n="home_why">Why traders choose Wunnaxswap</h2>
+        <p data-i18n="home_why_sub">Everything you need to buy, sell, route, and earn — without opaque pricing.</p>
       </div>
     </div>
     <div class="grid-3">
-      <article class="card feature"><div class="icon">⚡</div><h3>Arbitrage discovery</h3><p>Scan simulated multi-exchange quotes to spot cheaper buys and higher sells in seconds.</p></article>
-      <article class="card feature"><div class="icon">⇄</div><h3>Instant swap desk</h3><p>Convert assets with live demo rates, clear fees, and one-tap execution in your wallet.</p></article>
-      <article class="card feature"><div class="icon">◎</div><h3>Earn while you hold</h3><p>Flexible and fixed staking plans with transparent APRs. Lending is on the roadmap.</p></article>
-      <article class="card feature"><div class="icon">📊</div><h3>Pro-style tools</h3><p>Market cap, screener, cross rates, heat map, and technical signals in one toolkit.</p></article>
-      <article class="card feature"><div class="icon">🛡</div><h3>Security-first UX</h3><p>2FA flows, KYC guidance, session controls, and compliance pages built in.</p></article>
-      <article class="card feature"><div class="icon">📈</div><h3>Derivatives desk</h3><p>Long/short FX, indices, commodities, and crypto perps with leverage, funding, and desk AI chat.</p></article>
+      <article class="card feature"><div class="icon">⚡</div><h3 data-i18n="home_feat_arb">Arbitrage discovery</h3><p data-i18n="home_feat_arb_p">Scan multi-exchange quotes to spot cheaper buys and higher sells in seconds.</p></article>
+      <article class="card feature"><div class="icon">⇄</div><h3 data-i18n="home_feat_swap">Instant swap desk</h3><p data-i18n="home_feat_swap_p">Convert assets with live demo rates, clear fees, and one-tap execution in your wallet.</p></article>
+      <article class="card feature"><div class="icon">◎</div><h3 data-i18n="home_feat_earn">Earn while you hold</h3><p data-i18n="home_feat_earn_p">Flexible and fixed staking plans with transparent APRs. Lending is on the roadmap.</p></article>
+      <article class="card feature"><div class="icon">📊</div><h3 data-i18n="home_feat_tools">Pro-style tools</h3><p data-i18n="home_feat_tools_p">Market cap, screener, cross rates, heat map, and technical signals in one toolkit.</p></article>
+      <article class="card feature"><div class="icon">🛡</div><h3 data-i18n="home_feat_sec">Security-first UX</h3><p data-i18n="home_feat_sec_p">2FA flows, KYC guidance, session controls, and compliance pages built in.</p></article>
+      <article class="card feature"><div class="icon">📈</div><h3 data-i18n="home_feat_deriv">Derivatives desk</h3><p data-i18n="home_feat_deriv_p">Long/short FX, indices, commodities, and crypto perps with leverage, funding, and desk AI chat.</p></article>
     </div>
   </section>
 
   <section class="section container">
     <div class="section-head">
       <div>
-        <h2>Explore products</h2>
-        <p>Trade on your terms — spot, swap, earn, and arbitrage in one brand.</p>
+        <h2 data-i18n="home_explore">Explore products</h2>
+        <p data-i18n="home_explore_sub">Trade on your terms — spot, swap, earn, and arbitrage in one brand.</p>
       </div>
-      <a class="btn btn-ghost btn-sm" href="markets.html">View all markets</a>
+      <a class="btn btn-ghost btn-sm" href="markets.html" data-i18n="home_view_markets">View all markets</a>
     </div>
     <div class="grid-2">
       <article class="card feature">
-        <h3>Spot trading terminal</h3>
-        <p>Order book, live chart, market/limit tickets, and order history — demo balances included.</p>
-        <p style="margin-top:.8rem"><a class="btn btn-primary btn-sm" href="trade.html">Go trading</a></p>
+        <h3 data-i18n="home_spot_h">Spot trading terminal</h3>
+        <p data-i18n="home_spot_p">Order book, live chart, market/limit tickets, and order history — demo balances included.</p>
+        <p style="margin-top:.8rem"><a class="btn btn-primary btn-sm" href="trade.html" data-i18n="home_go_trade">Go trading</a></p>
       </article>
       <article class="card feature">
-        <h3>Buy & sell made simple</h3>
-        <p>Deposit major coins with clear minimums and commissions, then swap or trade immediately.</p>
-        <p style="margin-top:.8rem"><a class="btn btn-cyan btn-sm" href="profile/deposit.html">Deposit</a>
-        <a class="btn btn-ghost btn-sm" href="swap.html">Swap</a></p>
+        <h3 data-i18n="home_buy_h">Buy & sell made simple</h3>
+        <p data-i18n="home_buy_p">Deposit major coins with clear minimums and commissions, then swap or trade immediately.</p>
+        <p style="margin-top:.8rem"><a class="btn btn-cyan btn-sm" href="profile/deposit.html" data-i18n="home_deposit">Deposit</a>
+        <a class="btn btn-ghost btn-sm" href="swap.html" data-i18n="home_swap">Swap</a></p>
       </article>
     </div>
   </section>
@@ -93,8 +91,8 @@
   <section class="section container">
     <div class="section-head">
       <div>
-        <h2>Product roadmap</h2>
-        <p>Present features ship in-browser today. Future modules are marked and interactive via waitlists.</p>
+        <h2 data-i18n="home_roadmap">Product roadmap</h2>
+        <p data-i18n="home_roadmap_sub">Present features ship in-browser today. Future modules are marked and interactive via waitlists.</p>
       </div>
     </div>
     <div class="roadmap" id="roadmapGrid"></div>
@@ -104,14 +102,14 @@
   <section class="market-moving-band guest-only" id="marketMovingBand" data-guest-only aria-label="Market call to action">
     <div class="market-moving-inner">
       <div class="market-moving-content">
-        <p class="market-moving-kicker">Live markets · Crypto &amp; derivatives</p>
+        <p class="market-moving-kicker" data-i18n="home_moving_kicker">Live markets · Crypto &amp; derivatives</p>
         <h2 class="market-moving-title">
-          <span class="market-moving-line">The market&rsquo;s moving,</span>
-          <span class="market-moving-line">are you?</span>
+          <span class="market-moving-line" data-i18n="home_moving_line1">The market&rsquo;s moving,</span>
+          <span class="market-moving-line" data-i18n="home_moving_line2">are you?</span>
         </h2>
         <div class="market-moving-actions">
-          <a class="btn market-moving-cta" href="signup.html">Open an Account</a>
-          <a class="btn market-moving-cta-secondary" href="signin.html">Log in</a>
+          <a class="btn market-moving-cta" href="signup.html" data-i18n="home_open_account">Open an Account</a>
+          <a class="btn market-moving-cta-secondary" href="signin.html" data-i18n="home_login">Log in</a>
         </div>
       </div>
     </div>
@@ -122,16 +120,16 @@
     <div class="container supported-band-inner">
       <div class="section-head supported-band-head">
         <div>
-          <p class="supported-kicker">Coverage</p>
-          <h2>Supported exchanges &amp; coins</h2>
-          <p>Market coverage for swap, arbitrage, and deposit flows on Wunnaxswap.</p>
+          <p class="supported-kicker" data-i18n="home_coverage">Coverage</p>
+          <h2 data-i18n="home_supported">Supported exchanges &amp; coins</h2>
+          <p data-i18n="home_supported_p">Market coverage for swap, arbitrage, and deposit flows on Wunnaxswap.</p>
         </div>
-        <a class="btn btn-soft btn-sm" href="markets.html">Browse all markets</a>
+        <a class="btn btn-soft btn-sm" href="markets.html" data-i18n="home_browse_all">Browse all markets</a>
       </div>
 
       <div class="supported-panel">
         <div class="supported-panel-head">
-          <h3>Supported exchanges</h3>
+          <h3 data-i18n="home_exchanges">Supported exchanges</h3>
           <span class="muted" id="exchangeCount"></span>
         </div>
         <div class="chip-grid" id="supportedExchanges"></div>
@@ -139,7 +137,7 @@
 
       <div class="supported-panel">
         <div class="supported-panel-head">
-          <h3>Supported coins</h3>
+          <h3 data-i18n="home_coins">Supported coins</h3>
           <span class="muted" id="coinCount"></span>
         </div>
         <div class="chip-grid" id="supportedCoins"></div>
@@ -150,9 +148,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <script src="assets/js/firebase-config.js?v=20260804c"></script>
-  <script src="assets/js/backend.js?v=20260804c"></script>
-<script src="assets/js/data.js?v=deriv1"></script>
-  <script src="assets/js/app.js?v=banner3"></script>
+  <script src="assets/js/i18n.js?v=i18n1"></script>
+  <script src="assets/js/firebase-config.js?v=i18n1"></script>
+  <script src="assets/js/backend.js?v=i18n1"></script>
+  <script src="assets/js/data.js?v=i18n1"></script>
+  <script src="assets/js/app.js?v=i18n1"></script>
 </body>
 </html>

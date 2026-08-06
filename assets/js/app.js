@@ -266,10 +266,57 @@
     }
   }
 
+  /** Site i18n helper — falls back to English key text if pack missing */
+  function t(key, fallback) {
+    try {
+      if (window.WunnaxI18n && typeof WunnaxI18n.t === "function") {
+        var v = WunnaxI18n.t(key);
+        if (v && v !== key) return v;
+      }
+    } catch (_) {}
+    return fallback != null ? fallback : key;
+  }
+
+  function langSelectHtml(compact) {
+    try {
+      if (window.WunnaxI18n && WunnaxI18n.buildSelectHtml) {
+        return WunnaxI18n.buildSelectHtml(
+          compact ? "wx-lang-select wx-lang-select--compact" : "wx-lang-select",
+          { compact: !!compact }
+        );
+      }
+    } catch (_) {}
+    return (
+      '<label class="wx-lang-wrap wx-lang-wrap--compact">' +
+      '<select class="wx-lang-select wx-lang-select--compact" data-lang-select aria-label="Language">' +
+      '<option value="en">English</option>' +
+      '<option value="es">Español</option>' +
+      '<option value="fr">Français</option>' +
+      '<option value="zh">中文</option>' +
+      '<option value="ar">العربية</option>' +
+      '<option value="hi">हिन्दी</option>' +
+      '<option value="pt">Português</option>' +
+      '<option value="de">Deutsch</option>' +
+      '<option value="ja">日本語</option>' +
+      '<option value="ko">한국어</option>' +
+      "</select></label>"
+    );
+  }
+
+  function afterShellI18n() {
+    try {
+      if (window.WunnaxI18n) {
+        WunnaxI18n.wireSelects(document);
+        WunnaxI18n.apply(document);
+      }
+    } catch (_) {}
+  }
+
   function renderShell() {
     const p = pathPrefix();
     const user = getUser();
     const authed = isAuthed();
+    const langPick = langSelectHtml(true);
 
     // Avoid duplicate bars if boot runs twice
     $$(".topbar, .mobile-nav, footer.footer").forEach(function (el) {
@@ -282,84 +329,85 @@
       '<div class="container topbar-inner">' +
       '<a class="brand" href="' + homeUrl() + '"><span class="brand-mark">WX</span> Wunnaxswap</a>' +
       '<nav class="nav" id="mainNav">' +
-      '<a href="' + p + 'markets.html">Markets</a>' +
-      '<div class="drop"><button type="button">Trade ▾</button><div class="drop-menu">' +
-      '<a href="' + p + 'trade.html">Spot Terminal</a>' +
-      '<a href="' + p + 'trade.html?mode=futures">Crypto Futures</a>' +
-      '<a href="' + p + 'derivatives.html">Derivatives Desk</a>' +
-      '<a href="' + p + 'swap.html">Instant Swap</a>' +
-      '<a href="' + p + 'arbitrage.html">Arbitrage Scanner</a>' +
+      '<a href="' + p + 'markets.html" data-i18n="nav_markets">' + t("nav_markets", "Markets") + "</a>" +
+      '<div class="drop"><button type="button" data-i18n="nav_trade">' + t("nav_trade", "Trade ▾") + '</button><div class="drop-menu">' +
+      '<a href="' + p + 'trade.html" data-i18n="nav_spot">' + t("nav_spot", "Spot Terminal") + "</a>" +
+      '<a href="' + p + 'trade.html?mode=futures" data-i18n="nav_futures">' + t("nav_futures", "Crypto Futures") + "</a>" +
+      '<a href="' + p + 'derivatives.html" data-i18n="nav_derivatives_desk">' + t("nav_derivatives_desk", "Derivatives Desk") + "</a>" +
+      '<a href="' + p + 'swap.html" data-i18n="nav_swap">' + t("nav_swap", "Instant Swap") + "</a>" +
+      '<a href="' + p + 'arbitrage.html" data-i18n="nav_arbitrage">' + t("nav_arbitrage", "Arbitrage Scanner") + "</a>" +
       "</div></div>" +
-      '<a href="' + p + 'derivatives.html">Derivatives</a>' +
-      '<a href="' + p + 'earn.html">Earn</a>' +
-      '<div class="drop"><button type="button">Tools ▾</button><div class="drop-menu">' +
-      '<a href="' + p + 'tools/market-cap.html">Market Cap</a>' +
-      '<a href="' + p + 'tools/screener.html">Market Screener</a>' +
-      '<a href="' + p + 'tools/cross-rates.html">Cross Rates</a>' +
-      '<a href="' + p + 'tools/heat-map.html">Heat Map</a>' +
-      '<a href="' + p + 'tools/technical.html">Technical Analysis</a>' +
+      '<a href="' + p + 'derivatives.html" data-i18n="nav_derivatives">' + t("nav_derivatives", "Derivatives") + "</a>" +
+      '<a href="' + p + 'earn.html" data-i18n="nav_earn">' + t("nav_earn", "Earn") + "</a>" +
+      '<div class="drop"><button type="button" data-i18n="nav_tools">' + t("nav_tools", "Tools ▾") + '</button><div class="drop-menu">' +
+      '<a href="' + p + 'tools/market-cap.html" data-i18n="nav_market_cap">' + t("nav_market_cap", "Market Cap") + "</a>" +
+      '<a href="' + p + 'tools/screener.html" data-i18n="nav_screener">' + t("nav_screener", "Market Screener") + "</a>" +
+      '<a href="' + p + 'tools/cross-rates.html" data-i18n="nav_cross">' + t("nav_cross", "Cross Rates") + "</a>" +
+      '<a href="' + p + 'tools/heat-map.html" data-i18n="nav_heatmap">' + t("nav_heatmap", "Heat Map") + "</a>" +
+      '<a href="' + p + 'tools/technical.html" data-i18n="nav_technical">' + t("nav_technical", "Technical Analysis") + "</a>" +
       "</div></div>" +
-      '<a href="' + p + 'fees.html">Fees</a>' +
-      '<a href="' + p + 'about.html">About</a>' +
-      '<a href="' + p + 'contact.html">Contact</a>' +
+      '<a href="' + p + 'fees.html" data-i18n="nav_fees">' + t("nav_fees", "Fees") + "</a>" +
+      '<a href="' + p + 'about.html" data-i18n="nav_about">' + t("nav_about", "About") + "</a>" +
+      '<a href="' + p + 'contact.html" data-i18n="nav_contact">' + t("nav_contact", "Contact") + "</a>" +
       "</nav>" +
       '<div class="nav-actions">' +
+      langPick +
       (authed
-        ? '<a class="btn btn-ghost btn-sm" href="' + p + 'profile/wallet.html">Wallet</a>' +
+        ? '<a class="btn btn-ghost btn-sm" href="' + p + 'profile/wallet.html" data-i18n="nav_wallet">' + t("nav_wallet", "Wallet") + "</a>" +
           '<a class="btn btn-soft btn-sm" href="' + p + 'profile/settings.html">' +
-          (user && user.name ? String(user.name).split(" ")[0] : "Account") +
+          (user && user.name ? String(user.name).split(" ")[0] : t("nav_account", "Account")) +
           "</a>" +
-          '<button class="btn btn-ghost btn-sm" type="button" id="logoutBtn">Log out</button>'
-        : // Always visible Sign In + Sign Up (no hide-sm — was hiding Sign In on phones)
-          '<a class="btn btn-ghost btn-sm" href="' + p + 'signin.html">Sign In</a>' +
-          '<a class="btn btn-primary btn-sm" href="' + p + 'signup.html">Sign Up</a>') +
-      '<button class="menu-toggle" type="button" id="menuToggle" aria-label="Menu">☰</button>' +
+          '<button class="btn btn-ghost btn-sm" type="button" id="logoutBtn" data-i18n="nav_logout">' + t("nav_logout", "Log out") + "</button>"
+        : '<a class="btn btn-ghost btn-sm" href="' + p + 'signin.html" data-i18n="nav_signin">' + t("nav_signin", "Sign In") + "</a>" +
+          '<a class="btn btn-primary btn-sm" href="' + p + 'signup.html" data-i18n="nav_signup">' + t("nav_signup", "Sign Up") + "</a>") +
+      '<button class="menu-toggle" type="button" id="menuToggle" aria-label="' + t("nav_menu", "Menu") + '">☰</button>' +
       "</div></div>";
 
     const mobile = document.createElement("div");
     mobile.className = "mobile-nav";
     mobile.id = "mobileNav";
     mobile.innerHTML =
-      '<a href="' + homeUrl() + '">Home</a>' +
-      '<a href="' + p + 'markets.html">Markets</a>' +
-      '<a href="' + p + 'trade.html">Spot Trade</a>' +
-      '<a href="' + p + 'derivatives.html">Derivatives</a>' +
-      '<a href="' + p + 'swap.html">Swap</a>' +
-      '<a href="' + p + 'arbitrage.html">Arbitrage</a>' +
-      '<a href="' + p + 'earn.html">Earn</a>' +
-      '<a href="' + p + 'tools/market-cap.html">Tools</a>' +
-      '<a href="' + p + 'fees.html">Fees</a>' +
-      '<a href="' + p + 'about.html">About</a>' +
-      '<a href="' + p + 'contact.html">Contact</a>' +
-      '<a href="' + p + 'faq.html">FAQ</a>' +
+      '<div class="mobile-lang">' + langPick + "</div>" +
+      '<a href="' + homeUrl() + '" data-i18n="nav_home">' + t("nav_home", "Home") + "</a>" +
+      '<a href="' + p + 'markets.html" data-i18n="nav_markets">' + t("nav_markets", "Markets") + "</a>" +
+      '<a href="' + p + 'trade.html" data-i18n="nav_spot">' + t("nav_spot", "Spot Terminal") + "</a>" +
+      '<a href="' + p + 'derivatives.html" data-i18n="nav_derivatives">' + t("nav_derivatives", "Derivatives") + "</a>" +
+      '<a href="' + p + 'swap.html" data-i18n="nav_swap">' + t("nav_swap", "Instant Swap") + "</a>" +
+      '<a href="' + p + 'arbitrage.html" data-i18n="nav_arbitrage">' + t("nav_arbitrage", "Arbitrage Scanner") + "</a>" +
+      '<a href="' + p + 'earn.html" data-i18n="nav_earn">' + t("nav_earn", "Earn") + "</a>" +
+      '<a href="' + p + 'tools/market-cap.html" data-i18n="nav_tools">' + t("nav_tools", "Tools ▾") + "</a>" +
+      '<a href="' + p + 'fees.html" data-i18n="nav_fees">' + t("nav_fees", "Fees") + "</a>" +
+      '<a href="' + p + 'about.html" data-i18n="nav_about">' + t("nav_about", "About") + "</a>" +
+      '<a href="' + p + 'contact.html" data-i18n="nav_contact">' + t("nav_contact", "Contact") + "</a>" +
+      '<a href="' + p + 'faq.html" data-i18n="nav_faq">' + t("nav_faq", "FAQ") + "</a>" +
       (authed
-        ? '<a href="' + p + 'profile/wallet.html">Wallet</a><a href="' + p + 'profile/deposit.html">Deposit</a><button type="button" class="btn btn-ghost btn-sm" id="logoutBtnMobile">Log out</button>'
-        : '<a class="btn btn-ghost btn-sm" href="' + p + 'signin.html">Sign In</a><a class="btn btn-primary btn-sm" href="' + p + 'signup.html">Sign Up</a>');
+        ? '<a href="' + p + 'profile/wallet.html" data-i18n="nav_wallet">' + t("nav_wallet", "Wallet") + '</a><a href="' + p + 'profile/deposit.html" data-i18n="home_deposit">' + t("home_deposit", "Deposit") + '</a><button type="button" class="btn btn-ghost btn-sm" id="logoutBtnMobile" data-i18n="nav_logout">' + t("nav_logout", "Log out") + "</button>"
+        : '<a class="btn btn-ghost btn-sm" href="' + p + 'signin.html" data-i18n="nav_signin">' + t("nav_signin", "Sign In") + '</a><a class="btn btn-primary btn-sm" href="' + p + 'signup.html" data-i18n="nav_signup">' + t("nav_signup", "Sign Up") + "</a>");
 
     const footer = document.createElement("footer");
     footer.className = "footer";
     footer.innerHTML =
       '<div class="container footer-grid">' +
       "<div><a class=\"brand\" href=\"" + p + "index.html\"><span class=\"brand-mark\">WX</span> Wunnaxswap</a>" +
-      "<p class=\"muted\" style=\"margin:.7rem 0 0;font-size:.9rem\">Buy & sell crypto smarter. Arbitrage-aware rates, transparent fees, and tools built for everyday traders.</p></div>" +
-      "<div><h4>Products</h4>" +
-      '<a href="' + p + 'markets.html">Markets</a><a href="' + p + 'swap.html">Swap</a>' +
-      '<a href="' + p + 'arbitrage.html">Arbitrage</a><a href="' + p + 'trade.html">Spot Trade</a>' +
-      '<a href="' + p + 'derivatives.html">Derivatives</a>' +
-      '<a href="' + p + 'earn.html">Earn</a></div>' +
-      "<div><h4>Tools</h4>" +
-      '<a href="' + p + 'tools/market-cap.html">Market Cap</a><a href="' + p + 'tools/screener.html">Screener</a>' +
-      '<a href="' + p + 'tools/cross-rates.html">Cross Rates</a><a href="' + p + 'tools/heat-map.html">Heat Map</a>' +
-      '<a href="' + p + 'tools/technical.html">Technical</a></div>' +
-      "<div><h4>Company</h4>" +
-      '<a href="' + p + 'about.html">About</a><a href="' + p + 'fees.html">Fees</a>' +
-      '<a href="' + p + 'contact.html">Contact</a><a href="' + p + 'faq.html">FAQ</a></div>' +
-      "<div><h4>Legal</h4>" +
+      '<p class="muted" style="margin:.7rem 0 0;font-size:.9rem" data-i18n="footer_tagline">' + t("footer_tagline", "Buy & sell crypto smarter. Arbitrage-aware rates, transparent fees, and tools built for everyday traders.") + "</p></div>" +
+      '<div><h4 data-i18n="footer_products">' + t("footer_products", "Products") + "</h4>" +
+      '<a href="' + p + 'markets.html" data-i18n="nav_markets">' + t("nav_markets", "Markets") + '</a><a href="' + p + 'swap.html" data-i18n="nav_swap">' + t("nav_swap", "Instant Swap") + "</a>" +
+      '<a href="' + p + 'arbitrage.html" data-i18n="nav_arbitrage">' + t("nav_arbitrage", "Arbitrage Scanner") + '</a><a href="' + p + 'trade.html" data-i18n="nav_spot">' + t("nav_spot", "Spot Terminal") + "</a>" +
+      '<a href="' + p + 'derivatives.html" data-i18n="nav_derivatives">' + t("nav_derivatives", "Derivatives") + "</a>" +
+      '<a href="' + p + 'earn.html" data-i18n="nav_earn">' + t("nav_earn", "Earn") + "</a></div>" +
+      '<div><h4 data-i18n="footer_tools">' + t("footer_tools", "Tools") + "</h4>" +
+      '<a href="' + p + 'tools/market-cap.html" data-i18n="nav_market_cap">' + t("nav_market_cap", "Market Cap") + '</a><a href="' + p + 'tools/screener.html" data-i18n="nav_screener">' + t("nav_screener", "Market Screener") + "</a>" +
+      '<a href="' + p + 'tools/cross-rates.html" data-i18n="nav_cross">' + t("nav_cross", "Cross Rates") + '</a><a href="' + p + 'tools/heat-map.html" data-i18n="nav_heatmap">' + t("nav_heatmap", "Heat Map") + "</a>" +
+      '<a href="' + p + 'tools/technical.html" data-i18n="nav_technical">' + t("nav_technical", "Technical Analysis") + "</a></div>" +
+      '<div><h4 data-i18n="footer_company">' + t("footer_company", "Company") + "</h4>" +
+      '<a href="' + p + 'about.html" data-i18n="nav_about">' + t("nav_about", "About") + '</a><a href="' + p + 'fees.html" data-i18n="nav_fees">' + t("nav_fees", "Fees") + "</a>" +
+      '<a href="' + p + 'contact.html" data-i18n="nav_contact">' + t("nav_contact", "Contact") + '</a><a href="' + p + 'faq.html" data-i18n="nav_faq">' + t("nav_faq", "FAQ") + "</a></div>" +
+      "<div><h4 data-i18n=\"footer_legal\">" + t("footer_legal", "Legal") + "</h4>" +
       '<a href="' + p + 'terms.html">Terms</a><a href="' + p + 'privacy.html">Privacy</a>' +
       '<a href="' + p + 'compliance.html">Compliance</a></div></div>' +
       '<div class="container footer-bottom"><span>© ' + new Date().getFullYear() +
-      " Wunnaxswap. Demo frontend — not financial advice.</span>" +
-      "<span>Built for cheaper buy/sell discovery & transparent crypto tools.</span></div>";
+      " " + t("footer_copy", "Wunnaxswap. Demo frontend.") + "</span>" +
+      '<span data-i18n="footer_built">' + t("footer_built", "Built for cheaper buy/sell discovery & transparent crypto tools.") + "</span></div>";
 
     document.body.prepend(mobile);
     document.body.prepend(header);
@@ -390,6 +438,8 @@
     }
     $("#logoutBtn") && $("#logoutBtn").addEventListener("click", doLogout);
     $("#logoutBtnMobile") && $("#logoutBtnMobile").addEventListener("click", doLogout);
+
+    afterShellI18n();
 
     // Customer Care + AI Assistant (bottom-right, all pages)
     initCareAssistant(p);
@@ -2745,6 +2795,18 @@
     }
 
     renderShell();
+    // Re-paint shell + page strings when language changes site-wide
+    if (!window.__wunnaxLangShellHooked) {
+      window.__wunnaxLangShellHooked = true;
+      document.addEventListener("wunnax:lang", function () {
+        try {
+          if (!isAuthPage()) renderShell();
+          afterShellI18n();
+        } catch (e) {
+          console.warn(e);
+        }
+      });
+    }
     initAuth();
     try { updateLandingAuthUi(); } catch (e) { console.warn(e); }
 
